@@ -6,15 +6,17 @@ Minimalny backend NestJS dla Emma Medical Portal, przygotowany do uruchomienia n
 
 - Node.js 22
 - npm
+- PostgreSQL
 
 ## Uruchomienie lokalne
 
 ```bash
 npm install
+npm run prisma:generate
 npm run start:dev
 ```
 
-Domyślnie API jest dostępne pod adresem `http://localhost:3000`. Port można zmienić przez zmienną środowiskową `PORT`.
+Skopiuj `.env.example` do `.env` i ustaw `DATABASE_URL` na adres połączenia PostgreSQL. Domyślnie API jest dostępne pod adresem `http://localhost:3000`. Port można zmienić przez zmienną środowiskową `PORT`.
 
 ## Dostępne polecenia
 
@@ -23,6 +25,8 @@ npm run build
 npm run start
 npm run start:dev
 npm run test
+npm run prisma:generate
+npm run prisma:migrate:deploy
 ```
 
 ## Health check
@@ -36,6 +40,18 @@ npm run test
 }
 ```
 
+`GET /health/db` wykonuje zapytanie `SELECT 1` i przy dostępnym PostgreSQL zwraca:
+
+```json
+{
+  "status": "ok",
+  "service": "emma-api",
+  "database": "connected"
+}
+```
+
+Przy niedostępnej bazie endpoint zwraca HTTP 503 bez ujawniania danych połączenia.
+
 ## Railway
 
 Projekt deklaruje Node.js 22 w polu `engines`. Railway może użyć:
@@ -43,4 +59,4 @@ Projekt deklaruje Node.js 22 w polu `engines`. Railway może użyć:
 - build command: `npm run build`
 - start command: `npm run start`
 
-Aplikacja nasłuchuje na hoście `0.0.0.0` i porcie przekazanym w zmiennej `PORT`.
+Aplikacja nasłuchuje na hoście `0.0.0.0` i porcie przekazanym w zmiennej `PORT`. Połączenie z PostgreSQL korzysta wyłącznie ze zmiennej `DATABASE_URL`.

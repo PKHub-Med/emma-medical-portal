@@ -1,5 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService, HealthResponse } from './app.service';
+import {
+  AppService,
+  DatabaseHealthResponse,
+  HealthResponse,
+} from './app.service';
 
 @Controller()
 export class AppController {
@@ -8,5 +12,10 @@ export class AppController {
   @Get('health')
   getHealth(): HealthResponse {
     return this.appService.getHealth();
+  }
+
+  @Get('health/db')
+  getDatabaseHealth(): Promise<DatabaseHealthResponse> {
+    return this.appService.getDatabaseHealth();
   }
 }
