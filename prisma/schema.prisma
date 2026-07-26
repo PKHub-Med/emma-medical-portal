@@ -7,3 +7,79 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+
+  @@map("user_status")
+}
+
+enum MembershipRole {
+  HOSPITAL_USER
+  HOSPITAL_ADMIN
+  EMMA_ADMIN
+  SERVICE_OPERATOR
+
+  @@map("membership_role")
+}
+
+model Hospital {
+  id            String       @id @default(uuid()) @db.Uuid
+  name          String
+  active        Boolean      @default(true)
+  portalEnabled Boolean      @default(false) @map("portal_enabled")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  departments   Department[]
+  memberships   Membership[]
+
+  @@map("hospitals")
+}
+
+model Department {
+  id          String       @id @default(uuid()) @db.Uuid
+  hospitalId  String       @map("hospital_id") @db.Uuid
+  name        String
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  hospital    Hospital     @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  memberships Membership[]
+
+  @@unique([id, hospitalId], map: "departments_id_hospital_id_key")
+  @@index([hospitalId], map: "departments_hospital_id_idx")
+  @@map("departments")
+}
+
+model User {
+  id           String       @id @default(uuid()) @db.Uuid
+  email        String       @unique
+  passwordHash String?      @map("password_hash")
+  status       UserStatus   @default(ACTIVE)
+  lastLoginAt  DateTime?    @map("last_login_at") @db.Timestamptz(3)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  memberships  Membership[]
+
+  @@map("users")
+}
+
+model Membership {
+  id           String         @id @default(uuid()) @db.Uuid
+  userId       String         @map("user_id") @db.Uuid
+  hospitalId   String         @map("hospital_id") @db.Uuid
+  departmentId String?        @map("department_id") @db.Uuid
+  role         MembershipRole
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  hospital     Hospital       @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  department   Department?    @relation(fields: [departmentId, hospitalId], references: [id, hospitalId], onDelete: Restrict)
+
+  @@index([userId], map: "memberships_user_id_idx")
+  @@index([hospitalId], map: "memberships_hospital_id_idx")
+  @@index([departmentId], map: "memberships_department_id_idx")
+  @@map("memberships")
+}
