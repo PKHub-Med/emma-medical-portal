@@ -7,6 +7,9 @@
   "engines": {
     "node": "22.x"
   },
+  "workspaces": [
+    "apps/web"
+  ],
   "scripts": {
     "build": "npm run prisma:generate && nest build --config apps/api/nest-cli.json",
     "start": "node dist/apps/api/main.js",
@@ -14,7 +17,10 @@
     "test": "jest --runInBand",
     "prisma:generate": "prisma generate",
     "prisma:migrate:deploy": "prisma migrate deploy",
-    "admin:create": "npm run prisma:generate && ts-node --project apps/api/tsconfig.json apps/api/src/scripts/admin-create.ts"
+    "admin:create": "npm run prisma:generate && ts-node --project apps/api/tsconfig.json apps/api/src/scripts/admin-create.ts",
+    "web:dev": "npm --workspace @emma/web run dev",
+    "web:build": "npm --workspace @emma/web run build",
+    "web:test": "npm --workspace @emma/web run test"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",

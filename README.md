@@ -70,6 +70,18 @@ npm run admin:create -- --email=admin@example.com --password="bezpieczne-haslo"
 
 Komenda nie nadpisuje istniejącego użytkownika. Przed jej uruchomieniem musi być ustawiona zmienna `DATABASE_URL`.
 
+## Frontend
+
+Minimalna aplikacja React znajduje się w `apps/web`. Przed uruchomieniem ustaw `VITE_API_URL` na publiczny adres backendu Emma.
+
+```bash
+npm run web:dev
+npm run web:build
+npm run web:test
+```
+
+Frontend udostępnia trasy `/login` i `/app`. Wszystkie wywołania API korzystają z cookies przez `credentials: "include"`.
+
 ## Railway
 
 Projekt deklaruje Node.js 22 w polu `engines`. Railway może użyć:
