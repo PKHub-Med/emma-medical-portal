@@ -16,11 +16,17 @@ enum UserStatus {
   @@map("user_status")
 }
 
+enum SystemRole {
+  USER
+  EMMA_ADMIN
+  SERVICE_OPERATOR
+
+  @@map("system_role")
+}
+
 enum MembershipRole {
   HOSPITAL_USER
   HOSPITAL_ADMIN
-  EMMA_ADMIN
-  SERVICE_OPERATOR
 
   @@map("membership_role")
 }
@@ -58,6 +64,7 @@ model User {
   email        String       @unique
   passwordHash String?      @map("password_hash")
   status       UserStatus   @default(ACTIVE)
+  systemRole   SystemRole   @default(USER) @map("system_role")
   lastLoginAt  DateTime?    @map("last_login_at") @db.Timestamptz(3)
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
