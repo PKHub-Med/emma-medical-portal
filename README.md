@@ -52,6 +52,24 @@ npm run prisma:migrate:deploy
 
 Przy niedostępnej bazie endpoint zwraca HTTP 503 bez ujawniania danych połączenia.
 
+## Uwierzytelnianie
+
+API udostępnia podstawowe uwierzytelnianie sesyjne:
+
+- `POST /auth/login` — logowanie e-mailem i hasłem,
+- `POST /auth/logout` — unieważnienie bieżącej sesji,
+- `GET /me` — profil zalogowanego użytkownika i jego membershipy.
+
+Sesja jest przechowywana w cookie `emma_session`. W bazie zapisywany jest wyłącznie hash SHA-256 tokenu, a hasła są hashowane algorytmem Argon2id.
+
+Administratora systemowego można utworzyć poleceniem:
+
+```bash
+npm run admin:create -- --email=admin@example.com --password="bezpieczne-haslo"
+```
+
+Komenda nie nadpisuje istniejącego użytkownika. Przed jej uruchomieniem musi być ustawiona zmienna `DATABASE_URL`.
+
 ## Railway
 
 Projekt deklaruje Node.js 22 w polu `engines`. Railway może użyć:
