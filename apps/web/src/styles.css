@@ -998,6 +998,77 @@ h1 {
   line-height: 1.55;
 }
 
+.hospital-switcher {
+  display: flex;
+  min-width: min(360px, 52vw);
+  flex-direction: column;
+  gap: 5px;
+  color: #294a66;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.hospital-switcher select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 36px 8px 11px;
+  border: 1px solid #9fb0bf;
+  border-radius: 8px;
+  color: #173b5c;
+  background: #ffffff;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.hospital-switcher select:focus {
+  border-color: #164f7f;
+  outline: 3px solid rgb(22 79 127 / 16%);
+  outline-offset: 1px;
+}
+
+.hospital-switcher small {
+  color: #526b7f;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.switch-error {
+  margin-top: 4px;
+  color: #9c2a21;
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
+.password-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: -12px 0 16px;
+}
+
+.password-actions button {
+  min-height: 40px;
+  padding: 7px 10px;
+  border: 1px solid #b5c5d1;
+  border-radius: 7px;
+  color: #164f7f;
+  background: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.password-actions button:hover {
+  background: #eaf3f9;
+}
+
+.copy-success {
+  margin: -8px 0 18px;
+  color: #17663d;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
 @media (max-width: 1100px) {
   .mobile-header {
     position: sticky;
@@ -1246,6 +1317,10 @@ h1 {
   .membership-list li {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .hospital-switcher {
+    min-width: min(240px, 58vw);
   }
 }
 

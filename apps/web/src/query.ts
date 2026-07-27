@@ -6,6 +6,7 @@ import {
   getAdminHospitals,
   getAdminUsers,
   getCurrentUser,
+  getPortalHospitals,
   type AdminHospitalsParams,
   type AdminUsersParams,
 } from './api';
@@ -24,6 +25,18 @@ export function currentUserQueryOptions() {
 export function useCurrentUser() {
   return useQuery(currentUserQueryOptions());
 }
+
+export const portalHospitalsQueryKey = ['portal-hospitals'] as const;
+
+export function portalHospitalsQueryOptions() {
+  return queryOptions({
+    queryKey: portalHospitalsQueryKey,
+    queryFn: getPortalHospitals,
+    retry: false,
+  });
+}
+
+export const hospitalScopedQueryKey = ['hospital-scope'] as const;
 
 export const adminHospitalsQueryKey = ['admin-hospitals'] as const;
 

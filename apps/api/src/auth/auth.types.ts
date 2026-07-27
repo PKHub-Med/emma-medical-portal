@@ -16,10 +16,22 @@ export interface MembershipProfile {
   role: MembershipRole;
 }
 
+export interface ActiveHospitalProfile {
+  id: string;
+  name: string;
+  role: MembershipRole;
+}
+
 export interface AuthenticatedUser {
   id: string;
   email: string;
   status: UserStatus;
   systemRole: SystemRole;
   memberships: MembershipProfile[];
+  activeHospital?: ActiveHospitalProfile | null;
+}
+
+export interface AuthenticatedContext {
+  user: AuthenticatedUser;
+  sessionId: string;
 }

@@ -78,6 +78,46 @@ describe('AuthService', () => {
     });
   });
 
+  it('sets the first available hospital on a new USER session', async () => {
+    userFindUnique.mockResolvedValue({
+      id: 'user-id',
+      email: 'user@example.com',
+      passwordHash: validPasswordHash,
+      status: 'ACTIVE',
+      systemRole: 'USER',
+      memberships: [{ hospitalId: 'hospital-id' }],
+    });
+
+    await authService.login('user@example.com', 'correct-password');
+
+    expect(sessionCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'user-id',
+        activeHospitalId: 'hospital-id',
+      }),
+    });
+  });
+
+  it('creates an EMMA_ADMIN session without an active hospital', async () => {
+    userFindUnique.mockResolvedValue({
+      id: 'admin-id',
+      email: 'admin@example.com',
+      passwordHash: validPasswordHash,
+      status: 'ACTIVE',
+      systemRole: 'EMMA_ADMIN',
+      memberships: [],
+    });
+
+    await authService.login('admin@example.com', 'correct-password');
+
+    expect(sessionCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: 'admin-id',
+        activeHospitalId: null,
+      }),
+    });
+  });
+
   it('returns HTTP 401 with the generic message for an invalid password', async () => {
     userFindUnique.mockResolvedValue({
       id: 'user-id',
@@ -144,6 +184,7 @@ describe('AuthService', () => {
   it('returns the user profile and memberships for a valid session', async () => {
     sessionFindUnique.mockResolvedValue({
       id: 'session-id',
+      activeHospitalId: 'hospital-id',
       expiresAt: new Date(Date.now() + 60_000),
       revokedAt: null,
       user: {
@@ -158,6 +199,8 @@ describe('AuthService', () => {
             role: 'HOSPITAL_USER',
             hospital: {
               name: 'Szpital Testowy',
+              active: true,
+              portalEnabled: true,
             },
           },
         ],
@@ -179,6 +222,11 @@ describe('AuthService', () => {
           role: 'HOSPITAL_USER',
         },
       ],
+      activeHospital: {
+        id: 'hospital-id',
+        name: 'Szpital Testowy',
+        role: 'HOSPITAL_USER',
+      },
     });
     expect(sessionUpdate).toHaveBeenCalledWith({
       where: { id: 'session-id' },

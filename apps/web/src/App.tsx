@@ -21,7 +21,7 @@ export function defaultPathFor(user: CurrentUser): string {
     return '/admin';
   }
 
-  return user.memberships.length > 0 ? '/app' : '/brak-dostepu';
+  return user.activeHospital ? '/app' : '/brak-dostepu';
 }
 
 function SessionCheck(): ReactNode {
@@ -72,7 +72,7 @@ function AreaRoute({ area }: { area: 'portal' | 'admin' }) {
     currentUser.data.systemRole === 'SERVICE_OPERATOR';
   const hasPortalAccess =
     currentUser.data.systemRole === 'USER' &&
-    currentUser.data.memberships.length > 0;
+    Boolean(currentUser.data.activeHospital);
 
   if (
     (area === 'admin' && !isAdmin) ||
@@ -95,7 +95,7 @@ function NoAccessRoute() {
 
   const hasNoMembership =
     currentUser.data.systemRole === 'USER' &&
-    currentUser.data.memberships.length === 0;
+    !currentUser.data.activeHospital;
 
   return hasNoMembership ? (
     <AccessDeniedPage />

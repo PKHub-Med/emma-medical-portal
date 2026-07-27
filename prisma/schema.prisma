@@ -40,6 +40,7 @@ model Hospital {
   updatedAt     DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
   departments   Department[]
   memberships   Membership[]
+  activeSessions UserSession[] @relation("ActiveHospitalSessions")
 
   @@map("hospitals")
 }
@@ -93,17 +94,20 @@ model Membership {
 }
 
 model UserSession {
-  id         String    @id @default(uuid()) @db.Uuid
-  userId     String    @map("user_id") @db.Uuid
-  tokenHash  String    @unique @map("token_hash")
-  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
-  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(3)
-  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  tokenHash        String    @unique @map("token_hash")
+  activeHospitalId String?   @map("active_hospital_id") @db.Uuid
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(3)
+  lastUsedAt       DateTime? @map("last_used_at") @db.Timestamptz(3)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeHospital   Hospital? @relation("ActiveHospitalSessions", fields: [activeHospitalId], references: [id], onDelete: SetNull)
 
   @@index([userId], map: "user_sessions_user_id_idx")
   @@index([expiresAt], map: "user_sessions_expires_at_idx")
+  @@index([activeHospitalId], map: "user_sessions_active_hospital_id_idx")
   @@map("user_sessions")
 }

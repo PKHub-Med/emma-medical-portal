@@ -3,7 +3,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import {
@@ -25,6 +25,7 @@ import {
   adminUsersQueryOptions,
   useCurrentUser,
 } from '../query';
+import { generateTemporaryPassword } from '../passwordGenerator';
 
 const PAGE_SIZE = 25;
 
@@ -515,26 +516,50 @@ function CreateUserDialog({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
+  const [initialPassword] = useState(generateTemporaryPassword);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const pendingUser = useRef<
+    z.output<typeof userFormSchema> | undefined
+  >(undefined);
   const {
     register,
     handleSubmit,
+    getValues,
+    reset,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<UserFormValues>({
     defaultValues: {
       email: '',
-      temporaryPassword: '',
+      temporaryPassword: initialPassword,
       hospitalId: '',
       membershipRole: 'HOSPITAL_USER',
     },
   });
   const mutation = useMutation({
-    mutationFn: createAdminUser,
+    mutationFn: () => {
+      if (!pendingUser.current) {
+        throw new Error('Missing user form data');
+      }
+      return createAdminUser(pendingUser.current);
+    },
     onSuccess: async () => {
+      reset({
+        email: '',
+        temporaryPassword: '',
+        hospitalId: '',
+        membershipRole: 'HOSPITAL_USER',
+      });
+      pendingUser.current = undefined;
       await queryClient.invalidateQueries({
         queryKey: adminUsersQueryKey,
       });
       onClose();
+    },
+    onSettled: () => {
+      pendingUser.current = undefined;
     },
   });
 
@@ -546,7 +571,27 @@ function CreateUserDialog({
       return;
     }
 
-    mutation.mutate(validation.data);
+    pendingUser.current = validation.data;
+    mutation.mutate();
+  };
+
+  const generateNewPassword = () => {
+    setValue('temporaryPassword', generateTemporaryPassword(), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setCopyMessage(null);
+  };
+
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        getValues('temporaryPassword'),
+      );
+      setCopyMessage('Hasło skopiowano do schowka.');
+    } catch {
+      setCopyMessage('Nie udało się skopiować hasła.');
+    }
   };
 
   return (
@@ -577,12 +622,39 @@ function CreateUserDialog({
         >
           <input
             id="new-user-password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             autoComplete="new-password"
             aria-invalid={Boolean(errors.temporaryPassword)}
             {...register('temporaryPassword')}
           />
         </FormField>
+        <div className="password-actions">
+          <button type="button" onClick={generateNewPassword}>
+            Wygeneruj nowe hasło
+          </button>
+          <button type="button" onClick={() => void copyPassword()}>
+            Kopiuj hasło
+          </button>
+          <button
+            type="button"
+            aria-pressed={showPassword}
+            onClick={() => setShowPassword((visible) => !visible)}
+          >
+            {showPassword ? 'Ukryj hasło' : 'Pokaż hasło'}
+          </button>
+        </div>
+        {copyMessage && (
+          <p
+            className={
+              copyMessage.startsWith('Hasło skopiowano')
+                ? 'copy-success'
+                : 'field-error'
+            }
+            role="status"
+          >
+            {copyMessage}
+          </p>
+        )}
         <p className="form-help">
           Hasło jest tymczasowe i należy przekazać użytkownikowi
           bezpiecznym kanałem. Zaproszenia e-mail zostaną dodane w

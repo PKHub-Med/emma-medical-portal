@@ -9,7 +9,7 @@ const metrics = [
 
 export function PortalDashboardPage() {
   const { data: user } = useCurrentUser();
-  const hospitalName = user?.memberships[0]?.hospitalName;
+  const hospitalName = user?.activeHospital?.name;
 
   if (!user) {
     return null;

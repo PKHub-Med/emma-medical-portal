@@ -1,8 +1,15 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { setActiveHospital } from '../api';
 import { LogoutButton } from '../components/LogoutButton';
 import { UserSummary } from '../components/UserSummary';
-import { useCurrentUser } from '../query';
+import {
+  currentUserQueryKey,
+  portalHospitalsQueryKey,
+  portalHospitalsQueryOptions,
+  useCurrentUser,
+} from '../query';
 
 const portalLinks = [
   { to: '/app', label: 'Podsumowanie', mobileLabel: 'Start', icon: '⌂', end: true },
@@ -13,12 +20,47 @@ const portalLinks = [
 
 export function PortalLayout() {
   const { data: user } = useCurrentUser();
+  const hospitalsQuery = useQuery(portalHospitalsQueryOptions());
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const hospitalName = user?.memberships[0]?.hospitalName;
+  const switchMutation = useMutation({
+    mutationFn: setActiveHospital,
+    onSuccess: async (activeHospital) => {
+      queryClient.setQueryData(currentUserQueryKey, (current) => {
+        if (!current || typeof current !== 'object') {
+          return current;
+        }
+        return { ...current, activeHospital };
+      });
+      queryClient.removeQueries({
+        predicate: (query) =>
+          query.queryKey[0] !== currentUserQueryKey[0] &&
+          query.queryKey[0] !== portalHospitalsQueryKey[0],
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: currentUserQueryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: portalHospitalsQueryKey,
+        }),
+      ]);
+      navigate('/app', { replace: true });
+    },
+  });
 
   if (!user) {
     return null;
   }
+
+  const hospitalName =
+    user.activeHospital?.name ?? 'Nie wskazano szpitala';
+  const availableHospitals = hospitalsQuery.data?.items ?? [];
+  const selectedHospitalId =
+    user.activeHospital?.id ??
+    hospitalsQuery.data?.activeHospitalId ??
+    '';
 
   return (
     <div className="shell portal-shell">
@@ -52,9 +94,7 @@ export function PortalLayout() {
       >
         <div className="sidebar-heading">
           <span className="brand">Emma</span>
-          <span className="sidebar-context">
-            {hospitalName ?? 'Portal szpitala'}
-          </span>
+          <span className="sidebar-context">{hospitalName}</span>
         </div>
         <nav className="primary-nav">
           {portalLinks.map((link) => (
@@ -92,10 +132,39 @@ export function PortalLayout() {
       </aside>
 
       <main className="shell-main">
-        <div className="topbar">
+        <div className="topbar portal-topbar">
           <div>
-            <span className="topbar-label">Aktualny szpital</span>
-            <strong>{hospitalName ?? 'Nie wskazano szpitala'}</strong>
+            {availableHospitals.length >= 2 ? (
+              <label className="hospital-switcher">
+                <span>Szpital</span>
+                <select
+                  value={selectedHospitalId}
+                  disabled={switchMutation.isPending}
+                  onChange={(event) =>
+                    switchMutation.mutate(event.target.value)
+                  }
+                >
+                  {availableHospitals.map((hospital) => (
+                    <option value={hospital.id} key={hospital.id}>
+                      {hospital.name}
+                    </option>
+                  ))}
+                </select>
+                {switchMutation.isPending && (
+                  <small role="status">Zmienianie szpitala…</small>
+                )}
+              </label>
+            ) : (
+              <>
+                <span className="topbar-label">Aktualny szpital</span>
+                <strong>{hospitalName}</strong>
+              </>
+            )}
+            {switchMutation.isError && (
+              <span className="switch-error" role="alert">
+                Nie udało się zmienić szpitala.
+              </span>
+            )}
           </div>
           <UserSummary user={user} />
         </div>

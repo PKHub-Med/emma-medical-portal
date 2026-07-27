@@ -66,6 +66,68 @@ const managedUser: AdminUser = {
 };
 
 describe('Admin users page', () => {
+  it('generates a strong 20-character password and can regenerate it', async () => {
+    mockUsersApi(() => usersPage([]));
+    const user = userEvent.setup();
+
+    renderUsersPage();
+    await screen.findByText('Nie znaleziono użytkowników');
+    await user.click(
+      screen.getByRole('button', { name: 'Dodaj użytkownika' }),
+    );
+    const dialog = screen.getByRole('dialog');
+    const passwordInput = within(dialog).getByLabelText(
+      'Hasło tymczasowe',
+    ) as HTMLInputElement;
+    const firstPassword = passwordInput.value;
+
+    expect(firstPassword).toHaveLength(20);
+    expect(firstPassword).toMatch(/[a-z]/);
+    expect(firstPassword).toMatch(/[A-Z]/);
+    expect(firstPassword).toMatch(/[0-9]/);
+    expect(firstPassword).toMatch(/[^a-zA-Z0-9]/);
+
+    await user.click(
+      within(dialog).getByRole('button', {
+        name: 'Wygeneruj nowe hasło',
+      }),
+    );
+    expect(passwordInput.value).toHaveLength(20);
+    expect(passwordInput.value).not.toBe(firstPassword);
+  });
+
+  it('copies the generated password and shows confirmation', async () => {
+    mockUsersApi(() => usersPage([]));
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    renderUsersPage();
+    await screen.findByText('Nie znaleziono użytkowników');
+    await user.click(
+      screen.getByRole('button', { name: 'Dodaj użytkownika' }),
+    );
+    const dialog = screen.getByRole('dialog');
+    const passwordInput = within(dialog).getByLabelText(
+      'Hasło tymczasowe',
+    ) as HTMLInputElement;
+    await user.click(
+      within(dialog).getByRole('button', {
+        name: 'Kopiuj hasło',
+      }),
+    );
+
+    expect(writeText).toHaveBeenCalledWith(passwordInput.value);
+    expect(
+      await within(dialog).findByText(
+        'Hasło skopiowano do schowka.',
+      ),
+    ).toBeVisible();
+  });
+
   it('shows statuses and all hospital memberships', async () => {
     mockUsersApi(() => usersPage([managedUser]));
 
@@ -110,10 +172,11 @@ describe('Admin users page', () => {
       within(dialog).getByLabelText('Adres e-mail'),
       ' USER@Example.COM ',
     );
-    await user.type(
-      within(dialog).getByLabelText('Hasło tymczasowe'),
-      'temporary-password',
+    const passwordInput = within(dialog).getByLabelText(
+      'Hasło tymczasowe',
     );
+    await user.clear(passwordInput);
+    await user.type(passwordInput, 'temporary-password');
     await user.selectOptions(
       within(dialog).getByLabelText('Szpital'),
       firstHospital.id,

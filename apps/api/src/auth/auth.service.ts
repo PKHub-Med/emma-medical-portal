@@ -1,12 +1,16 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
+import { SystemRole } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   INVALID_CREDENTIALS_MESSAGE,
   SESSION_TTL_MS,
 } from './auth.constants';
-import type { AuthenticatedUser } from './auth.types';
 import { hashPassword, verifyPassword } from './password';
+import type {
+  AuthenticatedContext,
+  AuthenticatedUser,
+} from './auth.types';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +29,20 @@ export class AuthService {
       email
         ? this.prisma.user.findUnique({
             where: { email },
+            include: {
+              memberships: {
+                where: {
+                  departmentId: null,
+                  hospital: {
+                    active: true,
+                    portalEnabled: true,
+                  },
+                },
+                select: { hospitalId: true },
+                orderBy: { hospital: { name: 'asc' } },
+                take: 1,
+              },
+            },
           })
         : Promise.resolve(null),
       this.fallbackPasswordHash,
@@ -43,6 +61,10 @@ export class AuthService {
     const tokenHash = this.hashToken(token);
     const now = new Date();
     const expiresAt = new Date(now.getTime() + SESSION_TTL_MS);
+    const activeHospitalId =
+      user.systemRole === SystemRole.USER
+        ? (user.memberships[0]?.hospitalId ?? null)
+        : null;
 
     await this.prisma.$transaction([
       this.prisma.user.update({
@@ -53,6 +75,7 @@ export class AuthService {
         data: {
           userId: user.id,
           tokenHash,
+          activeHospitalId,
           expiresAt,
         },
       }),
@@ -61,7 +84,9 @@ export class AuthService {
     return token;
   }
 
-  async getAuthenticatedUser(token: string): Promise<AuthenticatedUser> {
+  async getAuthenticatedContext(
+    token: string,
+  ): Promise<AuthenticatedContext> {
     const now = new Date();
     const session = await this.prisma.userSession.findUnique({
       where: {
@@ -74,7 +99,9 @@ export class AuthService {
               include: {
                 hospital: {
                   select: {
-                    name: true,
+                        name: true,
+                        active: true,
+                        portalEnabled: true,
                   },
                 },
               },
@@ -98,7 +125,26 @@ export class AuthService {
       data: { lastUsedAt: now },
     });
 
-    return {
+    const activeMembership =
+      session.user.systemRole === SystemRole.USER
+        ? session.user.memberships
+            .filter(
+              (membership) =>
+                membership.hospitalId === session.activeHospitalId &&
+                membership.departmentId === null &&
+                membership.hospital.active &&
+                membership.hospital.portalEnabled,
+            )
+            .sort((left, right) =>
+              left.role === right.role
+                ? 0
+                : left.role === 'HOSPITAL_ADMIN'
+                  ? -1
+                  : 1,
+            )[0]
+        : undefined;
+
+    const user: AuthenticatedUser = {
       id: session.user.id,
       email: session.user.email,
       status: session.user.status,
@@ -110,6 +156,25 @@ export class AuthService {
         role: membership.role,
       })),
     };
+
+    if (session.user.systemRole === SystemRole.USER) {
+      user.activeHospital = activeMembership
+        ? {
+            id: activeMembership.hospitalId,
+            name: activeMembership.hospital.name,
+            role: activeMembership.role,
+          }
+        : null;
+    }
+
+    return {
+      user,
+      sessionId: session.id,
+    };
+  }
+
+  async getAuthenticatedUser(token: string): Promise<AuthenticatedUser> {
+    return (await this.getAuthenticatedContext(token)).user;
   }
 
   async revokeSession(token: string): Promise<void> {

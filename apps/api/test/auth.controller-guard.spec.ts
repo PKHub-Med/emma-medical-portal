@@ -23,11 +23,11 @@ describe('AuthController and SessionAuthGuard', () => {
     memberships: [],
   };
   const login = jest.fn();
-  const getAuthenticatedUser = jest.fn();
+  const getAuthenticatedContext = jest.fn();
   const revokeSession = jest.fn();
   const authServiceMock = {
     login,
-    getAuthenticatedUser,
+    getAuthenticatedContext,
     revokeSession,
   };
   const cookie = jest.fn();
@@ -106,7 +106,10 @@ describe('AuthController and SessionAuthGuard', () => {
   });
 
   it('allows GET /me with a valid session cookie', async () => {
-    getAuthenticatedUser.mockResolvedValue(profile);
+    getAuthenticatedContext.mockResolvedValue({
+      user: profile,
+      sessionId: 'session-id',
+    });
     const request = {
       headers: {
         cookie: `${SESSION_COOKIE_NAME}=raw-session-token`,
@@ -116,11 +119,12 @@ describe('AuthController and SessionAuthGuard', () => {
     await expect(
       guard.canActivate(contextFor(request)),
     ).resolves.toBe(true);
-    expect(getAuthenticatedUser).toHaveBeenCalledWith(
+    expect(getAuthenticatedContext).toHaveBeenCalledWith(
       'raw-session-token',
     );
     expect(controller.getMe(request)).toEqual(profile);
     expect(request.currentUser).toEqual(profile);
+    expect(request.currentSessionId).toBe('session-id');
   });
 
   it('returns HTTP 401 for GET /me without a session cookie', async () => {

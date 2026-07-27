@@ -11,6 +11,18 @@ export interface CurrentUser {
   status: 'ACTIVE' | 'INACTIVE' | 'BLOCKED';
   systemRole: 'USER' | 'EMMA_ADMIN' | 'SERVICE_OPERATOR';
   memberships: Membership[];
+  activeHospital?: PortalHospital | null;
+}
+
+export interface PortalHospital {
+  id: string;
+  name: string;
+  role: 'HOSPITAL_USER' | 'HOSPITAL_ADMIN';
+}
+
+export interface PortalHospitalsResponse {
+  items: PortalHospital[];
+  activeHospitalId: string | null;
 }
 
 export interface LoginCredentials {
@@ -138,6 +150,20 @@ export function logout(): Promise<void> {
 
 export function getCurrentUser(): Promise<CurrentUser> {
   return apiRequest('/me');
+}
+
+export function getPortalHospitals(): Promise<PortalHospitalsResponse> {
+  return apiRequest('/hospitals');
+}
+
+export function setActiveHospital(
+  hospitalId: string,
+): Promise<PortalHospital> {
+  return apiRequest('/me/active-hospital', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hospitalId }),
+  });
 }
 
 export function getAdminHospitals(

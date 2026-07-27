@@ -23,8 +23,10 @@ export class SessionAuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
 
-    request.currentUser =
-      await this.authService.getAuthenticatedUser(token);
+    const authContext =
+      await this.authService.getAuthenticatedContext(token);
+    request.currentUser = authContext.user;
+    request.currentSessionId = authContext.sessionId;
     request.sessionToken = token;
 
     return true;

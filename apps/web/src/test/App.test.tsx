@@ -34,11 +34,17 @@ const hospitalUser: CurrentUser = {
       role: 'HOSPITAL_USER',
     },
   ],
+  activeHospital: {
+    id: 'hospital-id',
+    name: 'Szpital Miejski',
+    role: 'HOSPITAL_USER',
+  },
 };
 
 const userWithoutMembership: CurrentUser = {
   ...hospitalUser,
   memberships: [],
+  activeHospital: null,
 };
 
 describe('Emma web authentication and navigation', () => {
@@ -76,7 +82,7 @@ describe('Emma web authentication and navigation', () => {
 
     expect(
       await screen.findByRole('heading', {
-        name: 'Brak przypisanego dostępu do szpitala.',
+        name: 'Brak aktywnego dostępu do portalu szpitala.',
       }),
     ).toBeVisible();
   });

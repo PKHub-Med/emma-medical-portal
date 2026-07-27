@@ -7,10 +7,10 @@ export function AccessDeniedPage() {
         <span className="brand">Emma</span>
         <p className="eyebrow">Dostęp do portalu</p>
         <h1 id="access-title">
-          Brak przypisanego dostępu do szpitala.
+          Brak aktywnego dostępu do portalu szpitala.
         </h1>
         <p>
-          Skontaktuj się z administratorem Emma, aby uzyskać dostęp.
+          Skontaktuj się z administratorem Emma.
         </p>
         <LogoutButton className="secondary-button" />
       </section>

@@ -5,6 +5,7 @@ import { AdminHospitalsModule } from './admin-hospitals/admin-hospitals.module';
 import { AdminUsersModule } from './admin-users/admin-users.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { PortalHospitalsModule } from './portal-hospitals/portal-hospitals.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { PrismaModule } from './prisma/prisma.module';
     AuthModule,
     AdminHospitalsModule,
     AdminUsersModule,
+    PortalHospitalsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
