@@ -18,6 +18,38 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface AdminHospital {
+  id: string;
+  name: string;
+  active: boolean;
+  portalEnabled: boolean;
+  departmentsCount: number;
+  membershipsCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminHospitalsResponse {
+  items: AdminHospital[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+export interface AdminHospitalsParams {
+  page: number;
+  pageSize: number;
+  search?: string;
+  active?: boolean;
+  portalEnabled?: boolean;
+}
+
+export interface UpdateHospitalInput {
+  name?: string;
+  active?: boolean;
+  portalEnabled?: boolean;
+}
+
 const apiUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 async function apiRequest<T>(
@@ -70,4 +102,55 @@ export function logout(): Promise<void> {
 
 export function getCurrentUser(): Promise<CurrentUser> {
   return apiRequest('/me');
+}
+
+export function getAdminHospitals(
+  params: AdminHospitalsParams,
+): Promise<AdminHospitalsResponse> {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    pageSize: String(params.pageSize),
+  });
+
+  if (params.search) {
+    query.set('search', params.search);
+  }
+
+  if (params.active !== undefined) {
+    query.set('active', String(params.active));
+  }
+
+  if (params.portalEnabled !== undefined) {
+    query.set('portalEnabled', String(params.portalEnabled));
+  }
+
+  return apiRequest(`/admin/hospitals?${query.toString()}`);
+}
+
+export function createAdminHospital(input: {
+  name: string;
+}): Promise<AdminHospital> {
+  return apiRequest('/admin/hospitals', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateAdminHospital({
+  id,
+  data,
+}: {
+  id: string;
+  data: UpdateHospitalInput;
+}): Promise<AdminHospital> {
+  return apiRequest(`/admin/hospitals/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
 }

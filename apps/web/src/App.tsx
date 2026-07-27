@@ -5,6 +5,7 @@ import { AdminLayout } from './layouts/AdminLayout';
 import { PortalLayout } from './layouts/PortalLayout';
 import { AccessDeniedPage } from './pages/AccessDeniedPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminHospitalsPage } from './pages/AdminHospitalsPage';
 import { LoginPage } from './pages/LoginPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { PortalDashboardPage } from './pages/PortalDashboardPage';
@@ -167,12 +168,7 @@ export function App() {
             <Route index element={<AdminDashboardPage />} />
             <Route
               path="hospitals"
-              element={
-                <PlaceholderPage
-                  title="Szpitale"
-                  description="Szpitale — moduł zostanie wdrożony w następnym etapie"
-                />
-              }
+              element={<AdminHospitalsPage />}
             />
             <Route
               path="users"
