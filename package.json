@@ -19,6 +19,7 @@
     "prisma:migrate:deploy": "prisma migrate deploy",
     "admin:create": "npm run prisma:generate && ts-node --project apps/api/tsconfig.json apps/api/src/scripts/admin-create.ts",
     "demo:seed-devices": "npm run prisma:generate && ts-node --project apps/api/tsconfig.json apps/api/src/scripts/demo-seed-devices.ts",
+    "demo:seed-repairs": "npm run prisma:generate && ts-node --project apps/api/tsconfig.json apps/api/src/scripts/demo-seed-repairs.ts",
     "web:dev": "npm --workspace @emma/web run dev",
     "web:build": "npm --workspace @emma/web run build",
     "web:test": "npm --workspace @emma/web run test",

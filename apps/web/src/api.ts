@@ -161,8 +161,84 @@ export interface DeviceDetails extends PortalDevice {
   qrEpc: string | null;
   passportNo: string | null;
   hospital: { id: string; name: string };
-  repairs: [];
+  repairs: DeviceRepair[];
   inspections: [];
+  documents: [];
+}
+
+export interface DeviceRepair {
+  id: string;
+  businessNumber: string;
+  customerStatusCode: string;
+  customerLabel: string;
+  reportedAt: string | null;
+  completedAt: string | null;
+}
+
+export type RepairState = 'open' | 'closed' | 'all';
+
+export interface RepairListItem {
+  id: string;
+  businessNumber: string;
+  customerStatusCode: string;
+  customerLabel: string;
+  isTerminal: boolean;
+  reportedAt: string | null;
+  updatedAt: string;
+  device: {
+    id: string;
+    name: string;
+    serialNo: string | null;
+    inventoryNo: string | null;
+  };
+  department: DepartmentOption | null;
+}
+
+export interface RepairsResponse {
+  items: RepairListItem[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+export interface RepairsParams {
+  page: number;
+  pageSize: number;
+  search?: string;
+  departmentId?: string;
+  status?: string;
+  state?: RepairState;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface RepairDetails {
+  id: string;
+  businessNumber: string;
+  customerStatusCode: string;
+  customerLabel: string;
+  isTerminal: boolean;
+  reportedAt: string | null;
+  acceptedAt: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  customerDescription: string | null;
+  device: {
+    id: string;
+    name: string;
+    manufacturer: string | null;
+    model: string | null;
+    serialNo: string | null;
+    inventoryNo: string | null;
+    department: DepartmentOption | null;
+    hospital: { id: string; name: string };
+  };
+  statusHistory: Array<{
+    id: string;
+    statusCode: string;
+    label: string;
+    changedAt: string;
+  }>;
   documents: [];
 }
 
@@ -428,6 +504,18 @@ export function getDevices(params: DevicesParams): Promise<DevicesResponse> {
 
 export function getDevice(id: string): Promise<DeviceDetails> {
   return apiRequest(`/devices/${encodeURIComponent(id)}`);
+}
+
+export function getRepairs(params: RepairsParams): Promise<RepairsResponse> {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  return apiRequest(`/repairs?${query.toString()}`);
+}
+
+export function getRepair(id: string): Promise<RepairDetails> {
+  return apiRequest(`/repairs/${encodeURIComponent(id)}`);
 }
 
 export function getDepartments(): Promise<{ items: DepartmentOption[] }> {

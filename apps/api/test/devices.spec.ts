@@ -96,6 +96,46 @@ describe('Portal devices', () => {
     );
   });
 
+  it('returns related repairs on device details', async () => {
+    const reportedAt = new Date('2026-07-19T08:00:00Z');
+    findFirst.mockResolvedValue({
+      id: deviceId,
+      name: 'Respirator',
+      manufacturer: null,
+      model: null,
+      serialNo: 'SN-001',
+      inventoryNo: null,
+      category: null,
+      active: true,
+      department: null,
+      qrEpc: null,
+      passportNo: null,
+      hospital: { id: hospitalId, name: 'Szpital Miejski' },
+      repairs: [{
+        id: 'repair-id',
+        businessNumber: 'N-2026-0142',
+        customerStatusCode: 'IN_PROGRESS',
+        customerLabel: 'W trakcie naprawy',
+        reportedAt,
+        completedAt: null,
+      }],
+    });
+    const result = await service.get('user-id', 'session-id', deviceId);
+    expect(result.repairs).toEqual([
+      expect.objectContaining({ businessNumber: 'N-2026-0142' }),
+    ]);
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      select: expect.objectContaining({
+        repairs: expect.objectContaining({
+          orderBy: [
+            { reportedAt: { sort: 'desc', nulls: 'last' } },
+            { createdAt: 'desc' },
+          ],
+        }),
+      }),
+    }));
+  });
+
   it('returns only active departments of the active hospital', async () => {
     departmentFindMany.mockResolvedValue([]);
     const departments = new DepartmentsService(

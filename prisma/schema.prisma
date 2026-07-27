@@ -38,6 +38,13 @@ enum AuditOutcome {
   @@map("audit_outcome")
 }
 
+enum StatusHistoryEntityType {
+  REPAIR
+  INSPECTION
+
+  @@map("status_history_entity_type")
+}
+
 model Hospital {
   id            String       @id @default(uuid()) @db.Uuid
   name          String
@@ -94,6 +101,7 @@ model Device {
   updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
   hospital          Hospital    @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
   department        Department? @relation(fields: [departmentId, hospitalId], references: [id, hospitalId], onDelete: Restrict)
+  repairs           Repair[]
 
   @@index([hospitalId], map: "devices_hospital_id_idx")
   @@index([hospitalId, departmentId], map: "devices_hospital_id_department_id_idx")
@@ -102,6 +110,54 @@ model Device {
   @@index([hospitalId, inventoryNo], map: "devices_hospital_id_inventory_no_idx")
   @@index([name], map: "devices_name_idx")
   @@map("devices")
+}
+
+model Repair {
+  id                  String    @id @default(uuid()) @db.Uuid
+  deviceId            String    @map("device_id") @db.Uuid
+  businessNumber      String    @unique @map("business_number") @db.VarChar(100)
+  customerStatusCode  String    @map("customer_status_code")
+  customerLabel       String    @map("customer_label")
+  isTerminal          Boolean   @default(false) @map("is_terminal")
+  reportedAt          DateTime? @map("reported_at") @db.Timestamptz(3)
+  acceptedAt          DateTime? @map("accepted_at") @db.Timestamptz(3)
+  startedAt           DateTime? @map("started_at") @db.Timestamptz(3)
+  completedAt         DateTime? @map("completed_at") @db.Timestamptz(3)
+  customerDescription String?   @map("customer_description")
+  sourceSystem        String?   @map("source_system")
+  sourceBaseId        String?   @map("source_base_id")
+  sourceTableName     String?   @map("source_table_name")
+  sourceRecordId      String?   @map("source_record_id")
+  sourceStatus        String?   @map("source_status")
+  sourceUpdatedAt     DateTime? @map("source_updated_at") @db.Timestamptz(3)
+  sourcePayloadHash   String?   @map("source_payload_hash")
+  sourceDeletedAt     DateTime? @map("source_deleted_at") @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  device              Device    @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+
+  @@index([deviceId], map: "repairs_device_id_idx")
+  @@index([isTerminal], map: "repairs_is_terminal_idx")
+  @@index([customerStatusCode], map: "repairs_customer_status_code_idx")
+  @@index([reportedAt], map: "repairs_reported_at_idx")
+  @@index([updatedAt], map: "repairs_updated_at_idx")
+  @@map("repairs")
+}
+
+model StatusHistory {
+  id            String                  @id @default(uuid()) @db.Uuid
+  entityType    StatusHistoryEntityType @map("entity_type")
+  entityId      String                  @map("entity_id") @db.Uuid
+  oldStatusCode String?                 @map("old_status_code")
+  oldLabel      String?                 @map("old_label")
+  newStatusCode String                  @map("new_status_code")
+  newLabel      String                  @map("new_label")
+  changedAt     DateTime                @map("changed_at") @db.Timestamptz(3)
+  createdAt     DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([entityType, entityId, changedAt], map: "status_history_entity_changed_at_idx")
+  @@index([changedAt], map: "status_history_changed_at_idx")
+  @@map("status_history")
 }
 
 model User {

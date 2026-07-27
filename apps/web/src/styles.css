@@ -1511,3 +1511,17 @@ h1 {
   .device-facts,
   .device-section-grid { grid-template-columns: 1fr; }
 }
+
+.repairs-toolbar { flex-wrap: wrap; }
+.repairs-toolbar .device-search { min-width: 260px; }
+.repair-status { display: inline-flex; padding: 5px 9px; border-radius: 999px; font-size: .8rem; font-weight: 750; white-space: nowrap; }
+.repair-status-info { color: #165b8b; background: #e7f2fa; }
+.repair-status-warning { color: #805500; background: #fff0c7; }
+.repair-status-success { color: #17643d; background: #e5f6ec; }
+.repair-detail-grid { display: grid; gap: 16px; }
+.status-timeline { display: flex; flex-direction: column; gap: 18px; margin: 0; padding-left: 22px; }
+.status-timeline li { padding-left: 8px; }
+.status-timeline time { display: block; margin-top: 7px; color: #607487; font-size: .85rem; }
+.device-repairs { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.device-repairs button { display: flex; width: 100%; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #d5e0e8; border-radius: 8px; color: #173e5e; background: #f8fbfc; cursor: pointer; text-align: left; }
+.device-repairs button:hover { background: #edf6fb; }

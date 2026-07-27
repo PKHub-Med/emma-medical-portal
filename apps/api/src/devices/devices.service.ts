@@ -110,6 +110,20 @@ export class DevicesService {
           qrEpc: true,
           passportNo: true,
           hospital: { select: { id: true, name: true } },
+          repairs: {
+            select: {
+              id: true,
+              businessNumber: true,
+              customerStatusCode: true,
+              customerLabel: true,
+              reportedAt: true,
+              completedAt: true,
+            },
+            orderBy: [
+              { reportedAt: { sort: 'desc', nulls: 'last' } },
+              { createdAt: 'desc' },
+            ],
+          },
         },
       });
     } catch {
@@ -121,8 +135,7 @@ export class DevicesService {
       throw new NotFoundException('Nie znaleziono urządzenia.');
     }
     return {
-      ...(device as Omit<DeviceDetails, 'repairs' | 'inspections' | 'documents'>),
-      repairs: [],
+      ...(device as Omit<DeviceDetails, 'inspections' | 'documents'>),
       inspections: [],
       documents: [],
     };

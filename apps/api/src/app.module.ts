@@ -8,6 +8,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { PortalHospitalsModule } from './portal-hospitals/portal-hospitals.module';
 import { AuditModule } from './audit/audit.module';
 import { DevicesModule } from './devices/devices.module';
+import { RepairsModule } from './repairs/repairs.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { DevicesModule } from './devices/devices.module';
     AdminUsersModule,
     PortalHospitalsModule,
     DevicesModule,
+    RepairsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

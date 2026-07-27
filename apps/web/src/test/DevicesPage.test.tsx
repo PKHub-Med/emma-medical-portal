@@ -98,6 +98,20 @@ describe('Portal devices UI', () => {
       .toBeVisible();
   });
 
+  it('shows linked repairs on device details', async () => {
+    mockApi([{
+      id: 'repair-id',
+      businessNumber: 'N-2026-0142',
+      customerStatusCode: 'IN_PROGRESS',
+      customerLabel: 'W trakcie naprawy',
+      reportedAt: '2026-07-19T08:00:00Z',
+      completedAt: null,
+    }]);
+    renderPages(`/app/devices/${deviceId}`);
+    expect(await screen.findByText('N-2026-0142')).toBeVisible();
+    expect(screen.getByText('W trakcie naprawy')).toBeVisible();
+  });
+
   it('includes activeHospitalId in the device query key', () => {
     const first = devicesQueryOptions('hospital-a', { page: 1, pageSize: 25 });
     const second = devicesQueryOptions('hospital-b', { page: 1, pageSize: 25 });
@@ -128,7 +142,7 @@ function Location() {
   return <output data-testid="location">{location.pathname}{location.search}</output>;
 }
 
-function mockApi() {
+function mockApi(repairs: unknown[] = []) {
   vi.stubGlobal(
     'fetch',
     vi.fn((input: RequestInfo | URL) => {
@@ -150,7 +164,7 @@ function mockApi() {
           hospital: { id: hospitalId, name: 'Szpital Miejski' },
           qrEpc: null,
           passportNo: null,
-          repairs: [],
+          repairs,
           inspections: [],
           documents: [],
         });

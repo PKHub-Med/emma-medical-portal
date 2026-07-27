@@ -14,6 +14,8 @@ import { PortalDashboardPage } from './pages/PortalDashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { DevicesPage } from './pages/DevicesPage';
 import { DeviceDetailsPage } from './pages/DeviceDetailsPage';
+import { RepairsPage } from './pages/RepairsPage';
+import { RepairDetailsPage } from './pages/RepairDetailsPage';
 import { useCurrentUser } from './query';
 
 export function defaultPathFor(user: CurrentUser): string {
@@ -143,13 +145,9 @@ export function App() {
             <Route path="devices/:id" element={<DeviceDetailsPage />} />
             <Route
               path="repairs"
-              element={
-                <PlaceholderPage
-                  title="Naprawy"
-                  description="Naprawy — moduł zostanie wdrożony w następnym etapie"
-                />
-              }
+              element={<RepairsPage />}
             />
+            <Route path="repairs/:id" element={<RepairDetailsPage />} />
             <Route
               path="inspections"
               element={

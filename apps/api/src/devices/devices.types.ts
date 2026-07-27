@@ -31,7 +31,14 @@ export interface DeviceDetails extends DeviceListItem {
   qrEpc: string | null;
   passportNo: string | null;
   hospital: { id: string; name: string };
-  repairs: [];
+  repairs: Array<{
+    id: string;
+    businessNumber: string;
+    customerStatusCode: string;
+    customerLabel: string;
+    reportedAt: Date | null;
+    completedAt: Date | null;
+  }>;
   inspections: [];
   documents: [];
 }

@@ -79,7 +79,23 @@ export function DeviceDetailsPage() {
         />
       </dl>
       <div className="device-section-grid">
-        <EmptySection title="Naprawy" text="Brak napraw przypisanych do urządzenia." />
+        <section className="detail-card">
+          <h2>Naprawy</h2>
+          {item.repairs.length === 0 ? (
+            <p>Brak napraw przypisanych do urządzenia.</p>
+          ) : (
+            <ul className="device-repairs">
+              {item.repairs.map((repair) => (
+                <li key={repair.id}>
+                  <button type="button" onClick={() => navigate(`/app/repairs/${repair.id}`)}>
+                    <strong>{repair.businessNumber}</strong>
+                    <span>{repair.customerLabel}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
         <EmptySection title="Przeglądy" text="Brak przeglądów przypisanych do urządzenia." />
         <EmptySection title="Dokumenty" text="Brak dokumentów przypisanych do urządzenia." />
       </div>

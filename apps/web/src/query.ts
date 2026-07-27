@@ -15,6 +15,9 @@ import {
   getDevice,
   getDepartments,
   type DevicesParams,
+  getRepairs,
+  getRepair,
+  type RepairsParams,
 } from './api';
 
 export const currentUserQueryKey = ['current-user'] as const;
@@ -102,6 +105,31 @@ export function deviceQueryOptions(activeHospitalId: string, id: string) {
 }
 
 export const departmentsQueryKey = ['departments'] as const;
+
+export const repairsQueryKey = ['repairs'] as const;
+
+export function repairsQueryOptions(
+  activeHospitalId: string,
+  params: RepairsParams,
+) {
+  return queryOptions({
+    queryKey: [...repairsQueryKey, activeHospitalId, params],
+    queryFn: () => getRepairs(params),
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export function repairQueryOptions(activeHospitalId: string, id: string) {
+  return queryOptions({
+    queryKey: [...repairsQueryKey, activeHospitalId, 'details', id],
+    queryFn: () => getRepair(id),
+    retry: (count, error) =>
+      error instanceof Error &&
+      'status' in error &&
+      Number((error as { status: number }).status) >= 500 &&
+      count < 2,
+  });
+}
 
 export function departmentsQueryOptions(activeHospitalId: string) {
   return queryOptions({
