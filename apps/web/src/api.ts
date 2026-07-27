@@ -140,6 +140,49 @@ export interface AuditParams {
   dateTo?: string;
 }
 
+export interface DepartmentOption {
+  id: string;
+  name: string;
+}
+
+export interface PortalDevice {
+  id: string;
+  name: string;
+  manufacturer: string | null;
+  model: string | null;
+  serialNo: string | null;
+  inventoryNo: string | null;
+  category: string | null;
+  department: DepartmentOption | null;
+  active: boolean;
+}
+
+export interface DeviceDetails extends PortalDevice {
+  qrEpc: string | null;
+  passportNo: string | null;
+  hospital: { id: string; name: string };
+  repairs: [];
+  inspections: [];
+  documents: [];
+}
+
+export interface DevicesResponse {
+  items: PortalDevice[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+export interface DevicesParams {
+  page: number;
+  pageSize: number;
+  search?: string;
+  departmentId?: string;
+  manufacturer?: string;
+  category?: string;
+  active?: boolean;
+}
+
 const apiUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 async function apiRequest<T>(
@@ -373,4 +416,20 @@ export function getAdminAudit(
     }
   });
   return apiRequest(`/admin/audit?${query.toString()}`);
+}
+
+export function getDevices(params: DevicesParams): Promise<DevicesResponse> {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  return apiRequest(`/devices?${query.toString()}`);
+}
+
+export function getDevice(id: string): Promise<DeviceDetails> {
+  return apiRequest(`/devices/${encodeURIComponent(id)}`);
+}
+
+export function getDepartments(): Promise<{ items: DepartmentOption[] }> {
+  return apiRequest('/departments');
 }

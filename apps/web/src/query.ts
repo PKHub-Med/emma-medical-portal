@@ -11,6 +11,10 @@ import {
   type AdminHospitalsParams,
   type AdminUsersParams,
   type AuditParams,
+  getDevices,
+  getDevice,
+  getDepartments,
+  type DevicesParams,
 } from './api';
 
 export const currentUserQueryKey = ['current-user'] as const;
@@ -69,5 +73,39 @@ export function adminAuditQueryOptions(params: AuditParams) {
     queryKey: [...adminAuditQueryKey, params],
     queryFn: () => getAdminAudit(params),
     placeholderData: (previousData) => previousData,
+  });
+}
+
+export const devicesQueryKey = ['devices'] as const;
+
+export function devicesQueryOptions(
+  activeHospitalId: string,
+  params: DevicesParams,
+) {
+  return queryOptions({
+    queryKey: [...devicesQueryKey, activeHospitalId, params],
+    queryFn: () => getDevices(params),
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export function deviceQueryOptions(activeHospitalId: string, id: string) {
+  return queryOptions({
+    queryKey: [...devicesQueryKey, activeHospitalId, 'details', id],
+    queryFn: () => getDevice(id),
+    retry: (count, error) =>
+      error instanceof Error &&
+      'status' in error &&
+      Number((error as { status: number }).status) >= 500 &&
+      count < 2,
+  });
+}
+
+export const departmentsQueryKey = ['departments'] as const;
+
+export function departmentsQueryOptions(activeHospitalId: string) {
+  return queryOptions({
+    queryKey: [...departmentsQueryKey, activeHospitalId],
+    queryFn: getDepartments,
   });
 }

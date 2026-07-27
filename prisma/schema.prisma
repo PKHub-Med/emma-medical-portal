@@ -49,6 +49,7 @@ model Hospital {
   memberships   Membership[]
   activeSessions UserSession[] @relation("ActiveHospitalSessions")
   auditEvents    AuditEvent[]
+  devices        Device[]
 
   @@map("hospitals")
 }
@@ -62,10 +63,45 @@ model Department {
   updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
   hospital    Hospital     @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
   memberships Membership[]
+  devices     Device[]
 
   @@unique([id, hospitalId], map: "departments_id_hospital_id_key")
   @@index([hospitalId], map: "departments_hospital_id_idx")
   @@map("departments")
+}
+
+model Device {
+  id                String      @id @default(uuid()) @db.Uuid
+  hospitalId        String      @map("hospital_id") @db.Uuid
+  departmentId      String?     @map("department_id") @db.Uuid
+  name              String
+  manufacturer      String?
+  model             String?
+  serialNo          String?     @map("serial_no")
+  inventoryNo       String?     @map("inventory_no")
+  category          String?
+  qrEpc             String?     @map("qr_epc")
+  passportNo        String?     @map("passport_no")
+  active            Boolean     @default(true)
+  sourceSystem      String?     @map("source_system")
+  sourceBaseId      String?     @map("source_base_id")
+  sourceTableName   String?     @map("source_table_name")
+  sourceRecordId    String?     @map("source_record_id")
+  sourceUpdatedAt   DateTime?   @map("source_updated_at") @db.Timestamptz(3)
+  sourcePayloadHash String?     @map("source_payload_hash")
+  sourceDeletedAt   DateTime?   @map("source_deleted_at") @db.Timestamptz(3)
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  hospital          Hospital    @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  department        Department? @relation(fields: [departmentId, hospitalId], references: [id, hospitalId], onDelete: Restrict)
+
+  @@index([hospitalId], map: "devices_hospital_id_idx")
+  @@index([hospitalId, departmentId], map: "devices_hospital_id_department_id_idx")
+  @@index([hospitalId, active], map: "devices_hospital_id_active_idx")
+  @@index([hospitalId, serialNo], map: "devices_hospital_id_serial_no_idx")
+  @@index([hospitalId, inventoryNo], map: "devices_hospital_id_inventory_no_idx")
+  @@index([name], map: "devices_name_idx")
+  @@map("devices")
 }
 
 model User {

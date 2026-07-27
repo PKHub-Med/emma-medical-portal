@@ -1452,3 +1452,62 @@ h1 {
     animation-iteration-count: 1 !important;
   }
 }
+
+.devices-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid #d5e0e8;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.devices-toolbar label {
+  display: grid;
+  gap: 6px;
+  color: #314f66;
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.devices-toolbar input,
+.devices-toolbar select {
+  min-height: 42px;
+  padding: 8px 11px;
+  border: 1px solid #a9bac8;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.device-search { flex: 1; }
+.device-search input { width: 100%; }
+.table-wrap { overflow-x: auto; border: 1px solid #d5e0e8; border-radius: 10px; }
+.devices-table { width: 100%; border-collapse: collapse; background: #fff; }
+.devices-table th,
+.devices-table td { padding: 14px 16px; border-bottom: 1px solid #e2e9ee; text-align: left; }
+.devices-table th { color: #486378; background: #f5f8fa; font-size: .78rem; text-transform: uppercase; }
+.devices-table tbody tr { cursor: pointer; }
+.devices-table tbody tr:hover,
+.devices-table tbody tr:focus { outline: none; background: #edf6fb; }
+.empty-card,
+.detail-card { padding: 24px; border: 1px solid #d5e0e8; border-radius: 10px; background: #fff; }
+.device-skeleton { display: grid; gap: 10px; }
+.device-skeleton span,
+.detail-skeleton { display: block; height: 62px; border-radius: 8px; background: #e8eef2; animation: pulse 1.2s ease-in-out infinite alternate; }
+.detail-skeleton { height: 420px; }
+@keyframes pulse { to { opacity: .45; } }
+.back-link { margin-bottom: 20px; padding: 0; border: 0; color: #155f96; background: none; font-weight: 750; cursor: pointer; }
+.device-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin: 24px 0; overflow: hidden; border: 1px solid #d5e0e8; border-radius: 10px; background: #d5e0e8; }
+.device-facts div { padding: 18px; background: #fff; }
+.device-facts dt { margin-bottom: 5px; color: #5c7181; font-size: .78rem; font-weight: 700; text-transform: uppercase; }
+.device-facts dd { margin: 0; color: #173e5e; font-weight: 700; }
+.device-section-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.detail-card h2 { margin-top: 0; }
+
+@media (max-width: 800px) {
+  .devices-toolbar { align-items: stretch; flex-direction: column; }
+  .device-facts,
+  .device-section-grid { grid-template-columns: 1fr; }
+}
