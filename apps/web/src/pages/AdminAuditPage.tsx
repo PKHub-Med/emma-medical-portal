@@ -16,6 +16,7 @@ export const auditActionLabels: Record<string, string> = {
   USER_CREATED: 'Utworzono użytkownika',
   USER_STATUS_CHANGED: 'Zmieniono status użytkownika',
   USER_DELETED: 'Usunięto konto użytkownika',
+  USER_RESTORED: 'Przywrócono konto użytkownika',
   MEMBERSHIP_CREATED: 'Nadano dostęp',
   MEMBERSHIP_UPDATED: 'Zmieniono dostęp',
   MEMBERSHIP_DELETED: 'Odebrano dostęp',

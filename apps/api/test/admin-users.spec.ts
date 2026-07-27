@@ -10,9 +10,10 @@ import { SESSION_COOKIE_NAME } from '../src/auth/auth.constants';
 import type { AuthenticatedRequest } from '../src/auth/authenticated-request';
 import { AuthService } from '../src/auth/auth.service';
 import type { AuthenticatedUser } from '../src/auth/auth.types';
-import { verifyPassword } from '../src/auth/password';
+import { hashPassword, verifyPassword } from '../src/auth/password';
 import { SessionAuthGuard } from '../src/auth/session-auth.guard';
 import { PrismaService } from '../src/prisma/prisma.service';
+import type { AuditService } from '../src/audit/audit.service';
 
 const admin: AuthenticatedUser = {
   id: '5a9789a5-8899-49f0-86cf-456a703a64a1',
@@ -209,10 +210,17 @@ describe('Admin users and access', () => {
     ).resolves.toBe(true);
     expect(JSON.stringify(result)).not.toContain('temporary-password');
     expect(JSON.stringify(result)).not.toContain('passwordHash');
+    expect(result).toMatchObject({
+      restored: false,
+      user: { id: regularUser.id, email: 'user@example.com' },
+    });
   });
 
   it('blocks duplicate email regardless of letter case', async () => {
-    userFindFirst.mockResolvedValue({ id: regularUser.id });
+    userFindFirst.mockResolvedValue({
+      id: regularUser.id,
+      deletedAt: null,
+    });
 
     await expect(
       controller.create({
@@ -221,7 +229,13 @@ describe('Admin users and access', () => {
         hospitalId,
         membershipRole: 'HOSPITAL_USER',
       }),
-    ).rejects.toMatchObject({ status: 409 });
+    ).rejects.toMatchObject({
+      status: 409,
+      response: {
+        code: 'USER_EMAIL_ALREADY_EXISTS',
+        message: expect.any(String),
+      },
+    });
     expect(userFindFirst).toHaveBeenCalledWith({
       where: {
         email: {
@@ -229,9 +243,121 @@ describe('Admin users and access', () => {
           mode: 'insensitive',
         },
       },
-      select: { id: true },
+      select: { id: true, deletedAt: true },
     });
     expect(userCreate).not.toHaveBeenCalled();
+  });
+
+  it('restores a deleted user with the same id, new password and one new membership', async () => {
+    const oldPasswordHash = await hashPassword('old-password-value');
+    const deletedAt = new Date('2026-07-20T10:00:00.000Z');
+    userFindFirst.mockResolvedValue({
+      id: regularUser.id,
+      deletedAt,
+    });
+    hospitalFindUnique.mockResolvedValue({
+      id: hospitalId,
+      active: true,
+    });
+    const tx = {
+      membership: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
+        create: jest.fn().mockResolvedValue({ id: membershipId }),
+      },
+      user: {
+        update: jest.fn().mockImplementation(async ({ data }) => ({
+          ...selectedUser,
+          id: regularUser.id,
+          status: data.status,
+          systemRole: data.systemRole,
+          memberships: [selectedMembership],
+        })),
+      },
+    };
+    transaction.mockImplementation(
+      async (callback: (client: typeof tx) => Promise<unknown>) =>
+        callback(tx),
+    );
+    const auditRecord = jest.fn().mockResolvedValue({});
+    const restoredService = new AdminUsersService(
+      prismaMock as unknown as PrismaService,
+      { record: auditRecord } as unknown as AuditService,
+    );
+
+    const result = await restoredService.create(
+      {
+        email: ' USER@EXAMPLE.COM ',
+        temporaryPassword: 'new-password-value',
+        hospitalId,
+        membershipRole: 'HOSPITAL_USER',
+      },
+      admin.id,
+    );
+
+    expect(result).toMatchObject({
+      restored: true,
+      user: {
+        id: regularUser.id,
+        email: regularUser.email,
+        status: 'ACTIVE',
+        systemRole: 'USER',
+        memberships: [
+          {
+            hospitalId,
+            departmentId: null,
+            role: 'HOSPITAL_USER',
+          },
+        ],
+      },
+    });
+    expect(tx.membership.deleteMany).toHaveBeenCalledWith({
+      where: { userId: regularUser.id },
+    });
+    expect(tx.membership.create).toHaveBeenCalledWith({
+      data: {
+        userId: regularUser.id,
+        hospitalId,
+        departmentId: null,
+        role: 'HOSPITAL_USER',
+      },
+      select: { id: true },
+    });
+    const restoreData = tx.user.update.mock.calls[0][0].data;
+    expect(restoreData).toMatchObject({
+      deletedAt: null,
+      deletedByUserId: null,
+      status: 'ACTIVE',
+      systemRole: 'USER',
+    });
+    await expect(
+      verifyPassword(restoreData.passwordHash, 'new-password-value'),
+    ).resolves.toBe(true);
+    await expect(
+      verifyPassword(restoreData.passwordHash, 'old-password-value'),
+    ).resolves.toBe(false);
+    await expect(
+      verifyPassword(oldPasswordHash, 'old-password-value'),
+    ).resolves.toBe(true);
+    expect(userCreate).not.toHaveBeenCalled();
+    expect(sessionUpdateMany).not.toHaveBeenCalled();
+    expect(auditRecord).toHaveBeenCalledWith(
+      {
+        actorId: admin.id,
+        action: 'USER_RESTORED',
+        outcome: 'SUCCESS',
+        entityType: 'USER',
+        entityId: regularUser.id,
+        hospitalId,
+        metadata: {
+          restored: true,
+          membershipRole: 'HOSPITAL_USER',
+        },
+      },
+      tx,
+    );
+    expect(JSON.stringify(auditRecord.mock.calls)).not.toContain(
+      'new-password-value',
+    );
   });
 
   it('allows access to two different hospitals with departmentId=null', async () => {

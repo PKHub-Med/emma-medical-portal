@@ -24,6 +24,7 @@ import type {
   AdminUserItem,
   AdminUsersPage,
   AdminUsersQuery,
+  CreateAdminUserResult,
 } from './admin-users.types';
 
 const membershipSelection = {
@@ -145,19 +146,28 @@ export class AdminUsersService {
     body: unknown,
     actorId?: string,
     requestContext: AuditRequestContext = {},
-  ): Promise<AdminUserItem> {
+  ): Promise<CreateAdminUserResult> {
     const data = parseCreateUserBody(body);
 
     const existingUser = await this.safeFindUserByEmail(data.email);
 
-    if (existingUser) {
-      throw new ConflictException(
-        'Użytkownik z tym adresem e-mail już istnieje.',
-      );
+    if (existingUser && existingUser.deletedAt === null) {
+      throw userEmailAlreadyExists();
     }
 
     const hospital = await this.requireActiveHospital(data.hospitalId);
     const passwordHash = await hashPassword(data.temporaryPassword);
+
+    if (existingUser) {
+      return this.restoreUser(
+        existingUser.id,
+        data,
+        passwordHash,
+        hospital.id,
+        actorId,
+        requestContext,
+      );
+    }
 
     try {
       const create = (client: typeof this.prisma) =>
@@ -224,12 +234,13 @@ export class AdminUsersService {
             })
           : await create(this.prisma);
 
-      return toAdminUserItem(user as SelectedUser);
+      return {
+        user: toAdminUserItem(user as SelectedUser),
+        restored: false,
+      };
     } catch (error) {
       if (hasPrismaCode(error, 'P2002')) {
-        throw new ConflictException(
-          'Użytkownik z tym adresem e-mail już istnieje.',
-        );
+        throw userEmailAlreadyExists();
       }
 
       throw new InternalServerErrorException(
@@ -309,6 +320,80 @@ export class AdminUsersService {
     } catch {
       throw new InternalServerErrorException(
         'Nie udało się zmienić statusu użytkownika.',
+      );
+    }
+  }
+
+  private async restoreUser(
+    userId: string,
+    data: {
+      email: string;
+      temporaryPassword: string;
+      hospitalId: string;
+      membershipRole: MembershipRole;
+    },
+    passwordHash: string,
+    hospitalId: string,
+    actorId?: string,
+    requestContext: AuditRequestContext = {},
+  ): Promise<CreateAdminUserResult> {
+    try {
+      const user = await this.prisma.$transaction(async (tx) => {
+        await tx.membership.deleteMany({ where: { userId } });
+        await tx.membership.create({
+          data: {
+            userId,
+            hospitalId,
+            departmentId: null,
+            role: data.membershipRole,
+          },
+          select: { id: true },
+        });
+        const restored = await tx.user.update({
+          where: { id: userId },
+          data: {
+            deletedAt: null,
+            deletedByUserId: null,
+            status: UserStatus.ACTIVE,
+            systemRole: SystemRole.USER,
+            passwordHash,
+          },
+          select: userSelection,
+        });
+
+        if (this.auditService && actorId) {
+          await this.auditService.record(
+            {
+              actorId,
+              action: 'USER_RESTORED',
+              outcome: AuditOutcome.SUCCESS,
+              entityType: 'USER',
+              entityId: userId,
+              hospitalId,
+              metadata: {
+                restored: true,
+                membershipRole: data.membershipRole,
+              },
+              ...requestContext,
+            },
+            tx,
+          );
+        }
+
+        return restored;
+      });
+
+      return {
+        user: toAdminUserItem(user as SelectedUser),
+        restored: true,
+      };
+    } catch (error) {
+      if (hasPrismaCode(error, 'P2002')) {
+        throw userEmailAlreadyExists();
+      }
+
+      throw new InternalServerErrorException(
+        'Nie udało się przywrócić użytkownika.',
       );
     }
   }
@@ -606,13 +691,13 @@ export class AdminUsersService {
 
   private async safeFindUserByEmail(
     email: string,
-  ): Promise<{ id: string } | null> {
+  ): Promise<{ id: string; deletedAt: Date | null } | null> {
     try {
       return await this.prisma.user.findFirst({
         where: {
           email: { equals: email, mode: 'insensitive' },
         },
-        select: { id: true },
+        select: { id: true, deletedAt: true },
       });
     } catch {
       throw new ServiceUnavailableException(
@@ -972,4 +1057,11 @@ function hasPrismaCode(error: unknown, code: string): boolean {
     'code' in error &&
     error.code === code
   );
+}
+
+function userEmailAlreadyExists(): ConflictException {
+  return new ConflictException({
+    code: 'USER_EMAIL_ALREADY_EXISTS',
+    message: 'Użytkownik z tym adresem e-mail już istnieje.',
+  });
 }

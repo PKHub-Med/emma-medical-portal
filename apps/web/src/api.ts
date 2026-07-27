@@ -90,6 +90,11 @@ export interface AdminUsersResponse {
   totalCount: number;
 }
 
+export interface CreateAdminUserResponse {
+  user: AdminUser;
+  restored: boolean;
+}
+
 export interface AdminUsersParams {
   page: number;
   pageSize: number;
@@ -282,7 +287,7 @@ export function createAdminUser(input: {
   temporaryPassword: string;
   hospitalId: string;
   membershipRole: MembershipRole;
-}): Promise<AdminUser> {
+}): Promise<CreateAdminUserResponse> {
   return apiRequest('/admin/users', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

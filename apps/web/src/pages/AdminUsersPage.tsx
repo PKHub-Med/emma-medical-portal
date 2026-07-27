@@ -437,6 +437,13 @@ export function AdminUsersPage() {
         <CreateUserDialog
           hospitals={activeHospitals}
           onClose={() => setDialog(null)}
+          onCreated={(restored) => {
+            setSuccessMessage(
+              restored
+                ? 'Usunięte wcześniej konto zostało przywrócone i otrzymało nowy dostęp.'
+                : 'Użytkownik został utworzony.',
+            );
+          }}
         />
       )}
       {dialog?.mode === 'membership' && (
@@ -542,9 +549,11 @@ function UsersTableSkeleton() {
 function CreateUserDialog({
   hospitals,
   onClose,
+  onCreated,
 }: {
   hospitals: AdminHospital[];
   onClose: () => void;
+  onCreated: (restored: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const [showPassword, setShowPassword] = useState(false);
@@ -581,7 +590,7 @@ function CreateUserDialog({
       }
       return createAdminUser(pendingUser.current);
     },
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       reset({
         email: '',
         temporaryPassword: '',
@@ -592,6 +601,7 @@ function CreateUserDialog({
       await queryClient.invalidateQueries({
         queryKey: adminUsersQueryKey,
       });
+      onCreated(result.restored);
       onClose();
     },
     onSettled: () => {

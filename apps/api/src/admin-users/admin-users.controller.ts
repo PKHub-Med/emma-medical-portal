@@ -19,6 +19,7 @@ import { AdminUsersService } from './admin-users.service';
 import type {
   AdminMembershipItem,
   AdminUserItem,
+  CreateAdminUserResult,
   AdminUsersPage,
   AdminUsersQuery,
 } from './admin-users.types';
@@ -37,7 +38,7 @@ export class AdminUsersController {
   create(
     @Body() body: unknown,
     @Req() request?: AuthenticatedRequest,
-  ): Promise<AdminUserItem> {
+  ): Promise<CreateAdminUserResult> {
     return this.usersService.create(
       body,
       request?.currentUser?.id,

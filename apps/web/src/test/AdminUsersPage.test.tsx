@@ -12,6 +12,7 @@ import type {
   AdminHospitalsResponse,
   AdminUser,
   AdminUsersResponse,
+  CreateAdminUserResponse,
   CurrentUser,
 } from '../api';
 
@@ -169,7 +170,7 @@ describe('Admin users page', () => {
           : usersPage([managedUser]);
       },
       {
-        create: () => managedUser,
+        create: () => ({ user: managedUser, restored: false }),
       },
     );
     const user = userEvent.setup();
@@ -209,6 +210,9 @@ describe('Admin users page', () => {
     );
 
     expect(await screen.findByText('user@example.com')).toBeVisible();
+    expect(
+      screen.getByRole('status'),
+    ).toHaveTextContent('Użytkownik został utworzony.');
     const createCall = fetchMock.mock.calls.find(
       ([url, init]) =>
         String(url).endsWith('/admin/users') &&
@@ -223,6 +227,64 @@ describe('Admin users page', () => {
       }),
     );
     expect(listRequests).toBe(2);
+
+    await user.click(
+      screen.getByRole('button', { name: 'Dodaj użytkownika' }),
+    );
+    const clearedDialog = screen.getByRole('dialog');
+    expect(
+      within(clearedDialog).getByLabelText('Adres e-mail'),
+    ).toHaveValue('');
+    expect(
+      within(clearedDialog).getByLabelText('Szpital'),
+    ).toHaveValue('');
+  });
+
+  it('shows a restoration message when a deleted account is restored', async () => {
+    let listRequests = 0;
+    mockUsersApi(
+      () => {
+        listRequests += 1;
+        return listRequests === 1
+          ? usersPage([])
+          : usersPage([managedUser]);
+      },
+      {
+        create: () => ({ user: managedUser, restored: true }),
+      },
+    );
+    const user = userEvent.setup();
+
+    renderUsersPage();
+    await screen.findByText('Nie znaleziono użytkowników');
+    await user.click(
+      screen.getByRole('button', { name: 'Dodaj użytkownika' }),
+    );
+    const dialog = screen.getByRole('dialog');
+    await user.type(
+      within(dialog).getByLabelText('Adres e-mail'),
+      'user@example.com',
+    );
+    const passwordInput = within(dialog).getByLabelText(
+      'Hasło tymczasowe',
+    );
+    await user.clear(passwordInput);
+    await user.type(passwordInput, 'temporary-password');
+    await user.selectOptions(
+      within(dialog).getByLabelText('Szpital'),
+      firstHospital.id,
+    );
+    await user.click(
+      within(dialog).getByRole('button', {
+        name: 'Dodaj użytkownika',
+      }),
+    );
+
+    expect(
+      await screen.findByText(
+        'Usunięte wcześniej konto zostało przywrócone i otrzymało nowy dostęp.',
+      ),
+    ).toBeVisible();
   });
 
   it('confirms logical account deletion and refreshes the list', async () => {
@@ -433,7 +495,7 @@ function renderUsersPage() {
 function mockUsersApi(
   list: () => AdminUsersResponse,
   mutations: {
-    create?: () => AdminUser;
+    create?: () => CreateAdminUserResponse;
     status?: () => AdminUser;
     membership?: () => AdminUser['memberships'][number];
     removeMembership?: () => void;

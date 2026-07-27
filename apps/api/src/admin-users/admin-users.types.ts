@@ -31,6 +31,11 @@ export interface AdminUserItem {
   memberships: AdminMembershipItem[];
 }
 
+export interface CreateAdminUserResult {
+  user: AdminUserItem;
+  restored: boolean;
+}
+
 export interface AdminUsersPage {
   items: AdminUserItem[];
   page: number;
