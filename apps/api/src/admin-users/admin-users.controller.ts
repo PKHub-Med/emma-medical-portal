@@ -50,6 +50,15 @@ export class AdminUsersController {
     );
   }
 
+  @Delete(':id')
+  @HttpCode(204)
+  deleteUser(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ): Promise<void> {
+    return this.usersService.deleteUser(id, request.currentUser!.id);
+  }
+
   @Post(':id/memberships')
   addMembership(
     @Param('id') id: string,

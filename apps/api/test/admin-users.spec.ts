@@ -131,7 +131,23 @@ describe('Admin users and access', () => {
       totalCount: 31,
     });
     expect(userFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 25, take: 25 }),
+      expect.objectContaining({
+        where: expect.objectContaining({ deletedAt: null }),
+        skip: 25,
+        take: 25,
+      }),
+    );
+  });
+
+  it('can include logically deleted users only when explicitly requested', async () => {
+    userFindMany.mockReturnValue('users-query');
+    userCount.mockReturnValue('count-query');
+    transaction.mockResolvedValue([[selectedUser], 1]);
+
+    await controller.list({ includeDeleted: 'true' });
+
+    expect(userFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: {} }),
     );
   });
 
@@ -324,6 +340,76 @@ describe('Admin users and access', () => {
     ).rejects.toMatchObject({ status: 403 });
     expect(userUpdate).not.toHaveBeenCalled();
     expect(sessionUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it('soft deletes a regular user, revokes sessions and removes memberships', async () => {
+    userFindUnique.mockResolvedValue({
+      id: regularUser.id,
+      systemRole: 'USER',
+      deletedAt: null,
+    });
+    userUpdate.mockReturnValue('user-soft-delete-query');
+    sessionUpdateMany.mockReturnValue('session-revoke-query');
+    membershipDeleteMany.mockReturnValue('memberships-delete-query');
+    transaction.mockResolvedValue([
+      { id: regularUser.id },
+      { count: 2 },
+      { count: 3 },
+    ]);
+
+    await expect(
+      controller.deleteUser(regularUser.id, requestFor(admin)),
+    ).resolves.toBeUndefined();
+
+    expect(userUpdate).toHaveBeenCalledWith({
+      where: { id: regularUser.id },
+      data: {
+        status: 'INACTIVE',
+        deletedAt: expect.any(Date),
+        deletedByUserId: admin.id,
+      },
+      select: { id: true },
+    });
+    expect(sessionUpdateMany).toHaveBeenCalledWith({
+      where: {
+        userId: regularUser.id,
+        revokedAt: null,
+        expiresAt: { gt: expect.any(Date) },
+      },
+      data: { revokedAt: expect.any(Date) },
+    });
+    expect(membershipDeleteMany).toHaveBeenCalledWith({
+      where: { userId: regularUser.id },
+    });
+    expect(transaction).toHaveBeenCalledWith([
+      'user-soft-delete-query',
+      'session-revoke-query',
+      'memberships-delete-query',
+    ]);
+    expect(prismaMock.user).not.toHaveProperty('delete');
+  });
+
+  it('does not allow the administrator to delete their own account', async () => {
+    await expect(
+      controller.deleteUser(admin.id, requestFor(admin)),
+    ).rejects.toMatchObject({ status: 403 });
+
+    expect(userFindUnique).not.toHaveBeenCalled();
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('does not allow deleting privileged system accounts', async () => {
+    userFindUnique.mockResolvedValue({
+      id: regularUser.id,
+      systemRole: 'SERVICE_OPERATOR',
+      deletedAt: null,
+    });
+
+    await expect(
+      controller.deleteUser(regularUser.id, requestFor(admin)),
+    ).rejects.toMatchObject({ status: 403 });
+
+    expect(transaction).not.toHaveBeenCalled();
   });
 
   it('updates only a membership belonging to the specified user', async () => {

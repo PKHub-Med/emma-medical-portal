@@ -9,6 +9,7 @@ import { z } from 'zod';
 import {
   addAdminUserMembership,
   createAdminUser,
+  deleteAdminUser,
   deleteAdminUserMembership,
   updateAdminUserMembership,
   updateAdminUserStatus,
@@ -59,6 +60,7 @@ type RoleFormValues = z.infer<typeof roleFormSchema>;
 type StatusFilter = 'all' | UserStatus;
 type UserDialog =
   | { mode: 'create' }
+  | { mode: 'delete'; user: AdminUser }
   | { mode: 'membership'; user: AdminUser }
   | {
       mode: 'role';
@@ -74,6 +76,7 @@ export function AdminUsersPage() {
   const [status, setStatus] = useState<StatusFilter>('all');
   const [hospitalId, setHospitalId] = useState('');
   const [dialog, setDialog] = useState<UserDialog | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const params: AdminUsersParams = {
@@ -217,6 +220,11 @@ export function AdminUsersPage() {
         deleteMembershipMutation.isError) && (
         <div className="inline-error" role="alert">
           Nie udało się zapisać zmiany. Spróbuj ponownie.
+        </div>
+      )}
+      {successMessage && (
+        <div className="success-banner" role="status">
+          {successMessage}
         </div>
       )}
 
@@ -374,6 +382,19 @@ export function AdminUsersPage() {
                                 Zablokuj
                               </button>
                             )}
+                            {user.systemRole === 'USER' && (
+                              <button
+                                className="danger-action"
+                                type="button"
+                                onClick={() => {
+                                  setSuccessMessage(null);
+                                  setDialog({ mode: 'delete', user });
+                                }}
+                                disabled={rowPending}
+                              >
+                                Usuń konto
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -422,6 +443,16 @@ export function AdminUsersPage() {
         <MembershipDialog
           user={dialog.user}
           hospitals={activeHospitals}
+          onClose={() => setDialog(null)}
+        />
+      )}
+      {dialog?.mode === 'delete' && (
+        <DeleteUserDialog
+          user={dialog.user}
+          onDeleted={() => {
+            setSuccessMessage('Konto zostało usunięte');
+            setDialog(null);
+          }}
           onClose={() => setDialog(null)}
         />
       )}
@@ -516,7 +547,6 @@ function CreateUserDialog({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
-  const [initialPassword] = useState(generateTemporaryPassword);
   const [showPassword, setShowPassword] = useState(false);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const pendingUser = useRef<
@@ -533,11 +563,17 @@ function CreateUserDialog({
   } = useForm<UserFormValues>({
     defaultValues: {
       email: '',
-      temporaryPassword: initialPassword,
+      temporaryPassword: '',
       hospitalId: '',
       membershipRole: 'HOSPITAL_USER',
     },
   });
+  useEffect(() => {
+    setValue('temporaryPassword', generateTemporaryPassword(), {
+      shouldDirty: false,
+      shouldValidate: false,
+    });
+  }, [setValue]);
   const mutation = useMutation({
     mutationFn: () => {
       if (!pendingUser.current) {
@@ -630,7 +666,7 @@ function CreateUserDialog({
         </FormField>
         <div className="password-actions">
           <button type="button" onClick={generateNewPassword}>
-            Wygeneruj nowe hasło
+            Wygeneruj nowe
           </button>
           <button type="button" onClick={() => void copyPassword()}>
             Kopiuj hasło
@@ -656,9 +692,8 @@ function CreateUserDialog({
           </p>
         )}
         <p className="form-help">
-          Hasło jest tymczasowe i należy przekazać użytkownikowi
-          bezpiecznym kanałem. Zaproszenia e-mail zostaną dodane w
-          późniejszym etapie.
+          Hasło musi mieć co najmniej 12 znaków. Automatycznie proponujemy
+          silne hasło składające się z 20 znaków.
         </p>
         <FormField
           id="new-user-hospital"
@@ -693,6 +728,61 @@ function CreateUserDialog({
           submitLabel="Dodaj użytkownika"
         />
       </form>
+    </DialogFrame>
+  );
+}
+
+function DeleteUserDialog({
+  user,
+  onDeleted,
+  onClose,
+}: {
+  user: AdminUser;
+  onDeleted: () => void;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: () => deleteAdminUser(user.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: adminUsersQueryKey,
+      });
+      onDeleted();
+    },
+  });
+
+  return (
+    <DialogFrame
+      title="Usuń konto"
+      subtitle={user.email}
+      onClose={onClose}
+      pending={mutation.isPending}
+    >
+      <p className="delete-confirmation">
+        Konto zostanie wyłączone, wszystkie aktywne sesje zakończone, a
+        dostępy do szpitali usunięte. Rekord zostanie zachowany dla historii
+        systemu.
+      </p>
+      <MutationError visible={mutation.isError} />
+      <div className="dialog-actions">
+        <button
+          className="secondary-button compact-button"
+          type="button"
+          onClick={onClose}
+          disabled={mutation.isPending}
+        >
+          Anuluj
+        </button>
+        <button
+          className="danger-button compact-button"
+          type="button"
+          onClick={() => mutation.mutate()}
+          disabled={mutation.isPending}
+        >
+          {mutation.isPending ? 'Usuwanie…' : 'Usuń konto'}
+        </button>
+      </div>
     </DialogFrame>
   );
 }

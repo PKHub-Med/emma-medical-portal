@@ -89,11 +89,28 @@ describe('Admin users page', () => {
 
     await user.click(
       within(dialog).getByRole('button', {
-        name: 'Wygeneruj nowe hasło',
+        name: 'Wygeneruj nowe',
       }),
     );
     expect(passwordInput.value).toHaveLength(20);
     expect(passwordInput.value).not.toBe(firstPassword);
+  });
+
+  it('shows the password minimum-length information', async () => {
+    mockUsersApi(() => usersPage([]));
+    const user = userEvent.setup();
+
+    renderUsersPage();
+    await screen.findByText('Nie znaleziono użytkowników');
+    await user.click(
+      screen.getByRole('button', { name: 'Dodaj użytkownika' }),
+    );
+
+    expect(
+      screen.getByText(
+        'Hasło musi mieć co najmniej 12 znaków. Automatycznie proponujemy silne hasło składające się z 20 znaków.',
+      ),
+    ).toBeVisible();
   });
 
   it('copies the generated password and shows confirmation', async () => {
@@ -165,7 +182,7 @@ describe('Admin users page', () => {
     const dialog = screen.getByRole('dialog');
     expect(
       within(dialog).getByText(
-        /Hasło jest tymczasowe i należy przekazać/,
+        /Hasło musi mieć co najmniej 12 znaków/,
       ),
     ).toBeVisible();
     await user.type(
@@ -206,6 +223,45 @@ describe('Admin users page', () => {
       }),
     );
     expect(listRequests).toBe(2);
+  });
+
+  it('confirms logical account deletion and refreshes the list', async () => {
+    let deleted = false;
+    const fetchMock = mockUsersApi(
+      () => usersPage(deleted ? [] : [managedUser]),
+      {
+        deleteUser: () => {
+          deleted = true;
+        },
+      },
+    );
+    const user = userEvent.setup();
+
+    renderUsersPage();
+    await screen.findByText('user@example.com');
+    await user.click(screen.getByRole('button', { name: 'Usuń konto' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        'Konto zostanie wyłączone, wszystkie aktywne sesje zakończone, a dostępy do szpitali usunięte. Rekord zostanie zachowany dla historii systemu.',
+      ),
+    ).toBeVisible();
+
+    await user.click(
+      within(dialog).getByRole('button', { name: 'Usuń konto' }),
+    );
+
+    expect(await screen.findByText('Konto zostało usunięte')).toBeVisible();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(await screen.findByText('Nie znaleziono użytkowników')).toBeVisible();
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          String(url).endsWith(`/admin/users/${managedUser.id}`) &&
+          init?.method === 'DELETE',
+      ),
+    ).toBe(true);
   });
 
   it('requires confirmation before blocking and refreshes status', async () => {
@@ -381,6 +437,7 @@ function mockUsersApi(
     status?: () => AdminUser;
     membership?: () => AdminUser['memberships'][number];
     removeMembership?: () => void;
+    deleteUser?: () => void;
   } = {},
 ) {
   return mockFetch((url, init) => {
@@ -403,6 +460,14 @@ function mockUsersApi(
       mutations.status
     ) {
       return jsonResponse(mutations.status());
+    }
+    if (
+      new RegExp(`/admin/users/[^/]+$`).test(url) &&
+      init?.method === 'DELETE' &&
+      mutations.deleteUser
+    ) {
+      mutations.deleteUser();
+      return emptyResponse();
     }
     if (
       /\/admin\/users\/[^/]+\/memberships$/.test(url) &&

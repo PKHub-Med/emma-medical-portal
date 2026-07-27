@@ -80,6 +80,11 @@ export class AdminUsersService {
     const search = query.search?.trim().toLowerCase();
     const status = parseOptionalStatus(query.status);
     const hospitalId = query.hospitalId?.trim();
+    const includeDeleted = parseOptionalBoolean(
+      query.includeDeleted,
+      'includeDeleted',
+      false,
+    );
 
     if (search && search.length > 320) {
       throw new BadRequestException(
@@ -94,6 +99,7 @@ export class AdminUsersService {
     }
 
     const where: Prisma.UserWhereInput = {
+      ...(includeDeleted ? {} : { deletedAt: null }),
       ...(search
         ? { email: { contains: search, mode: 'insensitive' } }
         : {}),
@@ -227,6 +233,59 @@ export class AdminUsersService {
     } catch {
       throw new InternalServerErrorException(
         'Nie udało się zmienić statusu użytkownika.',
+      );
+    }
+  }
+
+  async deleteUser(id: string, administratorId: string): Promise<void> {
+    validateUuid(id, 'użytkownika');
+
+    if (id === administratorId) {
+      throw new ForbiddenException(
+        'Nie możesz usunąć własnego konta.',
+      );
+    }
+
+    const existingUser = await this.safeFindUserForDeletion(id);
+
+    if (!existingUser || existingUser.deletedAt) {
+      throw new NotFoundException('Nie znaleziono użytkownika.');
+    }
+
+    if (existingUser.systemRole !== SystemRole.USER) {
+      throw new ForbiddenException(
+        'Tą operacją można usuwać wyłącznie zwykłe konta użytkowników.',
+      );
+    }
+
+    const now = new Date();
+
+    try {
+      await this.prisma.$transaction([
+        this.prisma.user.update({
+          where: { id },
+          data: {
+            status: UserStatus.INACTIVE,
+            deletedAt: now,
+            deletedByUserId: administratorId,
+          },
+          select: { id: true },
+        }),
+        this.prisma.userSession.updateMany({
+          where: {
+            userId: id,
+            revokedAt: null,
+            expiresAt: { gt: now },
+          },
+          data: { revokedAt: now },
+        }),
+        this.prisma.membership.deleteMany({
+          where: { userId: id },
+        }),
+      ]);
+    } catch {
+      throw new InternalServerErrorException(
+        'Nie udało się usunąć konta użytkownika.',
       );
     }
   }
@@ -393,6 +452,29 @@ export class AdminUsersService {
       return await this.prisma.user.findUnique({
         where: { id },
         select: { id: true },
+      });
+    } catch {
+      throw new ServiceUnavailableException(
+        'Nie udało się sprawdzić użytkownika.',
+      );
+    }
+  }
+
+  private async safeFindUserForDeletion(
+    id: string,
+  ): Promise<{
+    id: string;
+    systemRole: SystemRole;
+    deletedAt: Date | null;
+  } | null> {
+    try {
+      return await this.prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          systemRole: true,
+          deletedAt: true,
+        },
       });
     } catch {
       throw new ServiceUnavailableException(
@@ -598,6 +680,28 @@ function parseOptionalStatus(value: string | undefined): UserStatus | undefined 
   }
 
   return value;
+}
+
+function parseOptionalBoolean(
+  value: string | undefined,
+  field: string,
+  defaultValue: boolean,
+): boolean {
+  if (value === undefined || value === '') {
+    return defaultValue;
+  }
+
+  if (value === 'true') {
+    return true;
+  }
+
+  if (value === 'false') {
+    return false;
+  }
+
+  throw new BadRequestException(
+    `Parametr ${field} musi mieć wartość true albo false.`,
+  );
 }
 
 function parsePositiveInteger(

@@ -181,6 +181,24 @@ describe('AuthService', () => {
     expect(sessionCreate).not.toHaveBeenCalled();
   });
 
+  it('does not allow a logically deleted user to log in', async () => {
+    userFindUnique.mockResolvedValue({
+      id: 'deleted-user-id',
+      email: 'deleted@example.com',
+      passwordHash: validPasswordHash,
+      status: 'ACTIVE',
+      deletedAt: new Date(),
+    });
+
+    await expect(
+      authService.login('deleted@example.com', 'correct-password'),
+    ).rejects.toMatchObject({
+      status: 401,
+      message: INVALID_CREDENTIALS_MESSAGE,
+    });
+    expect(sessionCreate).not.toHaveBeenCalled();
+  });
+
   it('returns the user profile and memberships for a valid session', async () => {
     sessionFindUnique.mockResolvedValue({
       id: 'session-id',

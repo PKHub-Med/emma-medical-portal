@@ -61,17 +61,23 @@ model Department {
 }
 
 model User {
-  id           String        @id @default(uuid()) @db.Uuid
-  email        String        @unique
-  passwordHash String?       @map("password_hash")
-  status       UserStatus    @default(ACTIVE)
-  systemRole   SystemRole    @default(USER) @map("system_role")
-  lastLoginAt  DateTime?     @map("last_login_at") @db.Timestamptz(3)
-  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
-  memberships  Membership[]
-  sessions     UserSession[]
+  id              String        @id @default(uuid()) @db.Uuid
+  email           String        @unique
+  passwordHash    String?       @map("password_hash")
+  status          UserStatus    @default(ACTIVE)
+  systemRole      SystemRole    @default(USER) @map("system_role")
+  lastLoginAt     DateTime?     @map("last_login_at") @db.Timestamptz(3)
+  deletedAt       DateTime?     @map("deleted_at") @db.Timestamptz(3)
+  deletedByUserId String?       @map("deleted_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  memberships     Membership[]
+  sessions        UserSession[]
+  deletedBy       User?         @relation("UserSoftDeletes", fields: [deletedByUserId], references: [id], onDelete: SetNull)
+  deletedUsers    User[]        @relation("UserSoftDeletes")
 
+  @@index([deletedAt], map: "users_deleted_at_idx")
+  @@index([deletedByUserId], map: "users_deleted_by_user_id_idx")
   @@map("users")
 }
 

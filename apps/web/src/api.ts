@@ -253,6 +253,12 @@ export function createAdminUser(input: {
   });
 }
 
+export function deleteAdminUser(id: string): Promise<void> {
+  return apiRequest(`/admin/users/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 export function updateAdminUserStatus({
   id,
   status,

@@ -716,6 +716,14 @@ h1 {
   text-decoration: underline;
 }
 
+.row-actions .danger-action {
+  color: #a12620;
+}
+
+.row-actions .danger-action:hover:not(:disabled) {
+  background: #fff0ef;
+}
+
 .pagination {
   display: flex;
   min-height: 68px;
@@ -1067,6 +1075,34 @@ h1 {
   color: #17663d;
   font-size: 0.875rem;
   font-weight: 650;
+}
+
+.success-banner {
+  margin-bottom: 16px;
+  padding: 13px 16px;
+  border: 1px solid #9dceb2;
+  border-radius: 9px;
+  color: #145c37;
+  background: #edf9f2;
+  font-weight: 700;
+}
+
+.delete-confirmation {
+  margin: 0 0 24px;
+  color: #334e62;
+  line-height: 1.6;
+}
+
+.danger-button {
+  min-height: 44px;
+  border: 1px solid #8f211c;
+  color: #ffffff;
+  background: #a12620;
+  font-weight: 750;
+}
+
+.danger-button:hover:not(:disabled) {
+  background: #7f1b17;
 }
 
 @media (max-width: 1100px) {

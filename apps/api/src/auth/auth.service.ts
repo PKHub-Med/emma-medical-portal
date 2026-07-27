@@ -53,7 +53,12 @@ export class AuthService {
       password,
     );
 
-    if (!user || !passwordMatches || user.status !== 'ACTIVE') {
+    if (
+      !user ||
+      !passwordMatches ||
+      user.status !== 'ACTIVE' ||
+      user.deletedAt
+    ) {
       throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
 
@@ -115,7 +120,8 @@ export class AuthService {
       !session ||
       session.revokedAt ||
       session.expiresAt <= now ||
-      session.user.status !== 'ACTIVE'
+      session.user.status !== 'ACTIVE' ||
+      session.user.deletedAt
     ) {
       throw new UnauthorizedException();
     }

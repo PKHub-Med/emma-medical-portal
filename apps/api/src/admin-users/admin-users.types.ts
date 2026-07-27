@@ -10,6 +10,7 @@ export interface AdminUsersQuery {
   search?: string;
   status?: string;
   hospitalId?: string;
+  includeDeleted?: string;
 }
 
 export interface AdminMembershipItem {
