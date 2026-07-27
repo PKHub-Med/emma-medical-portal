@@ -74,12 +74,32 @@ describe('AuthController and SessionAuthGuard', () => {
     );
   });
 
-  it('marks the session cookie as secure in production', () => {
+  it('uses cross-site-safe session cookie options in production', async () => {
     const previousNodeEnv = process.env.NODE_ENV;
 
     try {
       process.env.NODE_ENV = 'production';
-      expect(sessionCookieOptions().secure).toBe(true);
+      login.mockResolvedValue('raw-session-token');
+
+      await controller.login(
+        {
+          email: 'user@example.com',
+          password: 'password',
+        },
+        responseMock,
+      );
+
+      expect(cookie).toHaveBeenCalledWith(
+        SESSION_COOKIE_NAME,
+        'raw-session-token',
+        {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'none',
+          path: '/',
+          maxAge: SESSION_TTL_MS,
+        },
+      );
     } finally {
       process.env.NODE_ENV = previousNodeEnv;
     }
@@ -96,6 +116,9 @@ describe('AuthController and SessionAuthGuard', () => {
     await expect(
       guard.canActivate(contextFor(request)),
     ).resolves.toBe(true);
+    expect(getAuthenticatedUser).toHaveBeenCalledWith(
+      'raw-session-token',
+    );
     expect(controller.getMe(request)).toEqual(profile);
     expect(request.currentUser).toEqual(profile);
   });
