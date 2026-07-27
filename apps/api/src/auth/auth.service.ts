@@ -1,7 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
-import { SystemRole } from '../generated/prisma/enums';
+import { AuditOutcome, SystemRole } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+import type { AuditRequestContext } from '../audit/audit.types';
+import type { Prisma } from '../generated/prisma/client';
 import {
   INVALID_CREDENTIALS_MESSAGE,
   SESSION_TTL_MS,
@@ -18,9 +21,16 @@ export class AuthService {
     randomBytes(32).toString('base64url'),
   );
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly auditService?: AuditService,
+  ) {}
 
-  async login(emailValue: unknown, passwordValue: unknown): Promise<string> {
+  async login(
+    emailValue: unknown,
+    passwordValue: unknown,
+    requestContext: AuditRequestContext = {},
+  ): Promise<string> {
     const email =
       typeof emailValue === 'string' ? emailValue.trim().toLowerCase() : '';
     const password = typeof passwordValue === 'string' ? passwordValue : '';
@@ -59,6 +69,14 @@ export class AuthService {
       user.status !== 'ACTIVE' ||
       user.deletedAt
     ) {
+      await this.auditService
+        ?.record({
+          action: 'AUTH_LOGIN_FAILED',
+          outcome: AuditOutcome.FAILURE,
+          metadata: { email: maskEmail(email) },
+          ...requestContext,
+        })
+        .catch(() => undefined);
       throw new UnauthorizedException(INVALID_CREDENTIALS_MESSAGE);
     }
 
@@ -71,7 +89,7 @@ export class AuthService {
         ? (user.memberships[0]?.hospitalId ?? null)
         : null;
 
-    await this.prisma.$transaction([
+    const operations: Prisma.PrismaPromise<unknown>[] = [
       this.prisma.user.update({
         where: { id: user.id },
         data: { lastLoginAt: now },
@@ -84,7 +102,18 @@ export class AuthService {
           expiresAt,
         },
       }),
-    ]);
+    ];
+    if (this.auditService) {
+      operations.push(
+        this.auditService.record({
+          actorId: user.id,
+          action: 'AUTH_LOGIN_SUCCEEDED',
+          outcome: AuditOutcome.SUCCESS,
+          ...requestContext,
+        }),
+      );
+    }
+    await this.prisma.$transaction(operations);
 
     return token;
   }
@@ -195,7 +224,42 @@ export class AuthService {
     });
   }
 
+  async revokeSessionWithAudit(
+    token: string,
+    actorId: string,
+    requestContext: AuditRequestContext = {},
+  ): Promise<void> {
+    const revoke = this.prisma.userSession.updateMany({
+      where: {
+        tokenHash: this.hashToken(token),
+        revokedAt: null,
+      },
+      data: {
+        revokedAt: new Date(),
+      },
+    });
+    if (!this.auditService) {
+      await revoke;
+      return;
+    }
+    await this.prisma.$transaction([
+      revoke,
+      this.auditService.record({
+        actorId,
+        action: 'AUTH_LOGOUT',
+        outcome: AuditOutcome.SUCCESS,
+        ...requestContext,
+      }),
+    ]);
+  }
+
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
   }
+}
+
+export function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '***';
+  return `${local[0]}***@${domain}`;
 }

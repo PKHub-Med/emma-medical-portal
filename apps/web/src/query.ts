@@ -5,10 +5,12 @@ import {
 import {
   getAdminHospitals,
   getAdminUsers,
+  getAdminAudit,
   getCurrentUser,
   getPortalHospitals,
   type AdminHospitalsParams,
   type AdminUsersParams,
+  type AuditParams,
 } from './api';
 
 export const currentUserQueryKey = ['current-user'] as const;
@@ -56,6 +58,16 @@ export function adminUsersQueryOptions(params: AdminUsersParams) {
   return queryOptions({
     queryKey: [...adminUsersQueryKey, params],
     queryFn: () => getAdminUsers(params),
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export const adminAuditQueryKey = ['admin-audit'] as const;
+
+export function adminAuditQueryOptions(params: AuditParams) {
+  return queryOptions({
+    queryKey: [...adminAuditQueryKey, params],
+    queryFn: () => getAdminAudit(params),
     placeholderData: (previousData) => previousData,
   });
 }

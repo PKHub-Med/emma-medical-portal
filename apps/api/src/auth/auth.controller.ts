@@ -17,6 +17,7 @@ import {
 } from './auth.constants';
 import type { AuthenticatedRequest } from './authenticated-request';
 import { AuthService } from './auth.service';
+import { auditContextFromRequest } from '../audit/audit-request';
 import type { AuthenticatedUser, LoginBody } from './auth.types';
 import { SessionAuthGuard } from './session-auth.guard';
 
@@ -29,8 +30,13 @@ export class AuthController {
   async login(
     @Body() body: LoginBody,
     @Res({ passthrough: true }) response: Response,
+    @Req() request?: AuthenticatedRequest,
   ): Promise<{ status: 'ok' }> {
-    const token = await this.authService.login(body?.email, body?.password);
+    const token = await this.authService.login(
+      body?.email,
+      body?.password,
+      request ? auditContextFromRequest(request) : {},
+    );
 
     response.cookie(SESSION_COOKIE_NAME, token, {
       ...sessionCookieOptions(),
@@ -51,7 +57,18 @@ export class AuthController {
       throw new UnauthorizedException();
     }
 
-    await this.authService.revokeSession(request.sessionToken);
+    if (
+      request.currentUser &&
+      typeof this.authService.revokeSessionWithAudit === 'function'
+    ) {
+      await this.authService.revokeSessionWithAudit(
+        request.sessionToken,
+        request.currentUser.id,
+        auditContextFromRequest(request),
+      );
+    } else {
+      await this.authService.revokeSession(request.sessionToken);
+    }
     response.clearCookie(
       SESSION_COOKIE_NAME,
       sessionCookieOptions(),

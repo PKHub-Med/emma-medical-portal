@@ -7,6 +7,7 @@ import { AccessDeniedPage } from './pages/AccessDeniedPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminHospitalsPage } from './pages/AdminHospitalsPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
+import { AdminAuditPage } from './pages/AdminAuditPage';
 import { LoginPage } from './pages/LoginPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { PortalDashboardPage } from './pages/PortalDashboardPage';
@@ -204,12 +205,7 @@ export function App() {
             />
             <Route
               path="audit"
-              element={
-                <PlaceholderPage
-                  title="Audyt"
-                  description="Audyt — moduł zostanie wdrożony w następnym etapie"
-                />
-              }
+              element={<AdminAuditPage />}
             />
             <Route path="profile" element={<ProfilePage />} />
           </Route>

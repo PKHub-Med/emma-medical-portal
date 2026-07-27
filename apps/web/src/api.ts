@@ -98,6 +98,43 @@ export interface AdminUsersParams {
   hospitalId?: string;
 }
 
+export type AuditOutcome = 'SUCCESS' | 'FAILURE';
+
+export interface AuditEvent {
+  id: string;
+  action: string;
+  outcome: AuditOutcome;
+  actor: { id: string; email: string } | null;
+  entityType: string | null;
+  entityId: string | null;
+  hospital: { id: string; name: string } | null;
+  metadata: unknown;
+  ipAddress: string | null;
+  userAgent: string | null;
+  requestId: string | null;
+  createdAt: string;
+}
+
+export interface AuditResponse {
+  items: AuditEvent[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+export interface AuditParams {
+  page: number;
+  pageSize: number;
+  search?: string;
+  action?: string;
+  outcome?: AuditOutcome;
+  entityType?: string;
+  hospitalId?: string;
+  actorId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 const apiUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 async function apiRequest<T>(
@@ -319,4 +356,16 @@ export function deleteAdminUserMembership({
     `/admin/users/${userId}/memberships/${membershipId}`,
     { method: 'DELETE' },
   );
+}
+
+export function getAdminAudit(
+  params: AuditParams,
+): Promise<AuditResponse> {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') {
+      query.set(key, String(value));
+    }
+  });
+  return apiRequest(`/admin/audit?${query.toString()}`);
 }

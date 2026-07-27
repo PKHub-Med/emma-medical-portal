@@ -6,10 +6,12 @@ import { AdminUsersModule } from './admin-users/admin-users.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PortalHospitalsModule } from './portal-hospitals/portal-hospitals.module';
+import { AuditModule } from './audit/audit.module';
 
 @Module({
   imports: [
     PrismaModule,
+    AuditModule,
     AuthModule,
     AdminHospitalsModule,
     AdminUsersModule,

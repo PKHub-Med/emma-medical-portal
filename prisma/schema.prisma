@@ -31,6 +31,13 @@ enum MembershipRole {
   @@map("membership_role")
 }
 
+enum AuditOutcome {
+  SUCCESS
+  FAILURE
+
+  @@map("audit_outcome")
+}
+
 model Hospital {
   id            String       @id @default(uuid()) @db.Uuid
   name          String
@@ -41,6 +48,7 @@ model Hospital {
   departments   Department[]
   memberships   Membership[]
   activeSessions UserSession[] @relation("ActiveHospitalSessions")
+  auditEvents    AuditEvent[]
 
   @@map("hospitals")
 }
@@ -75,10 +83,36 @@ model User {
   sessions        UserSession[]
   deletedBy       User?         @relation("UserSoftDeletes", fields: [deletedByUserId], references: [id], onDelete: SetNull)
   deletedUsers    User[]        @relation("UserSoftDeletes")
+  auditEvents     AuditEvent[]   @relation("AuditEventActor")
 
   @@index([deletedAt], map: "users_deleted_at_idx")
   @@index([deletedByUserId], map: "users_deleted_by_user_id_idx")
   @@map("users")
+}
+
+model AuditEvent {
+  id          String       @id @default(uuid()) @db.Uuid
+  actorId     String?      @map("actor_id") @db.Uuid
+  action      String
+  outcome     AuditOutcome
+  entityType  String?      @map("entity_type")
+  entityId    String?      @map("entity_id") @db.Uuid
+  hospitalId  String?      @map("hospital_id") @db.Uuid
+  metadata    Json?
+  ipAddress   String?      @map("ip_address")
+  userAgent   String?      @map("user_agent")
+  requestId   String?      @map("request_id")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  actor       User?        @relation("AuditEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  hospital    Hospital?    @relation(fields: [hospitalId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt], map: "audit_events_created_at_idx")
+  @@index([actorId, createdAt], map: "audit_events_actor_id_created_at_idx")
+  @@index([action, createdAt], map: "audit_events_action_created_at_idx")
+  @@index([entityType, entityId], map: "audit_events_entity_type_entity_id_idx")
+  @@index([hospitalId, createdAt], map: "audit_events_hospital_id_created_at_idx")
+  @@index([outcome, createdAt], map: "audit_events_outcome_created_at_idx")
+  @@map("audit_events")
 }
 
 model Membership {

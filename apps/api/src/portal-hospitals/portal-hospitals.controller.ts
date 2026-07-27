@@ -13,6 +13,7 @@ import type { CurrentHospital } from './current-hospital-scope.service';
 import { PortalHospitalsService } from './portal-hospitals.service';
 import type { AvailableHospitalsResponse } from './portal-hospitals.service';
 import { PortalUserGuard } from './portal-user.guard';
+import { auditContextFromRequest } from '../audit/audit-request';
 
 @Controller()
 @UseGuards(SessionAuthGuard, PortalUserGuard)
@@ -39,6 +40,7 @@ export class PortalHospitalsController {
       context.userId,
       context.sessionId,
       body,
+      auditContextFromRequest(request),
     );
   }
 }

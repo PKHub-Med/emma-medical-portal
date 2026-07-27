@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Optional,
   InternalServerErrorException,
   NotFoundException,
   ServiceUnavailableException,
@@ -15,6 +16,9 @@ import {
 } from '../generated/prisma/enums';
 import { hashPassword } from '../auth/password';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+import type { AuditRequestContext } from '../audit/audit.types';
+import { AuditOutcome } from '../generated/prisma/enums';
 import type {
   AdminMembershipItem,
   AdminUserItem,
@@ -67,7 +71,10 @@ type SelectedUser = {
 
 @Injectable()
 export class AdminUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly auditService?: AuditService,
+  ) {}
 
   async list(query: AdminUsersQuery): Promise<AdminUsersPage> {
     const page = parsePositiveInteger(query.page, 'page', 1);
@@ -134,7 +141,11 @@ export class AdminUsersService {
     }
   }
 
-  async create(body: unknown): Promise<AdminUserItem> {
+  async create(
+    body: unknown,
+    actorId?: string,
+    requestContext: AuditRequestContext = {},
+  ): Promise<AdminUserItem> {
     const data = parseCreateUserBody(body);
 
     const existingUser = await this.safeFindUserByEmail(data.email);
@@ -149,22 +160,69 @@ export class AdminUsersService {
     const passwordHash = await hashPassword(data.temporaryPassword);
 
     try {
-      const user = await this.prisma.user.create({
-        data: {
-          email: data.email,
-          passwordHash,
-          status: UserStatus.ACTIVE,
-          systemRole: SystemRole.USER,
-          memberships: {
-            create: {
-              hospitalId: hospital.id,
-              departmentId: null,
-              role: data.membershipRole,
+      const create = (client: typeof this.prisma) =>
+        client.user.create({
+          data: {
+            email: data.email,
+            passwordHash,
+            status: UserStatus.ACTIVE,
+            systemRole: SystemRole.USER,
+            memberships: {
+              create: {
+                hospitalId: hospital.id,
+                departmentId: null,
+                role: data.membershipRole,
+              },
             },
           },
-        },
-        select: userSelection,
-      });
+          select: userSelection,
+        });
+      const user =
+        this.auditService && actorId
+          ? await this.prisma.$transaction(async (tx) => {
+              const created = await create(tx as typeof this.prisma);
+              await this.auditService!.record(
+                {
+                  actorId,
+                  action: 'USER_CREATED',
+                  outcome: AuditOutcome.SUCCESS,
+                  entityType: 'USER',
+                  entityId: created.id,
+                  hospitalId: hospital.id,
+                  metadata: {
+                    changedFields: ['email', 'status', 'systemRole'],
+                    newValues: {
+                      email: data.email,
+                      status: UserStatus.ACTIVE,
+                      systemRole: SystemRole.USER,
+                    },
+                  },
+                  ...requestContext,
+                },
+                tx,
+              );
+              const membership = created.memberships[0];
+              if (membership) {
+                await this.auditService!.record(
+                  {
+                    actorId,
+                    action: 'MEMBERSHIP_CREATED',
+                    outcome: AuditOutcome.SUCCESS,
+                    entityType: 'MEMBERSHIP',
+                    entityId: membership.id,
+                    hospitalId: hospital.id,
+                    metadata: {
+                      userId: created.id,
+                      role: data.membershipRole,
+                    },
+                    ...requestContext,
+                  },
+                  tx,
+                );
+              }
+              return created;
+            })
+          : await create(this.prisma);
 
       return toAdminUserItem(user as SelectedUser);
     } catch (error) {
@@ -184,6 +242,7 @@ export class AdminUsersService {
     id: string,
     body: unknown,
     administratorId: string,
+    requestContext: AuditRequestContext = {},
   ): Promise<AdminUserItem> {
     validateUuid(id, 'użytkownika');
     const status = parseStatusBody(body);
@@ -210,24 +269,41 @@ export class AdminUsersService {
         select: userSelection,
       });
 
-      if (status === UserStatus.ACTIVE) {
+      if (status === UserStatus.ACTIVE && !this.auditService) {
         return toAdminUserItem(
           (await userUpdate) as SelectedUser,
         );
       }
 
       const now = new Date();
-      const [user] = await this.prisma.$transaction([
+      const operations: Prisma.PrismaPromise<unknown>[] = [
         userUpdate,
-        this.prisma.userSession.updateMany({
+        ...(status === UserStatus.ACTIVE ? [] : [this.prisma.userSession.updateMany({
           where: {
             userId: id,
             revokedAt: null,
             expiresAt: { gt: now },
           },
           data: { revokedAt: now },
-        }),
-      ]);
+        })]),
+      ];
+      if (this.auditService) {
+        operations.push(
+          this.auditService.record({
+            actorId: administratorId,
+            action: 'USER_STATUS_CHANGED',
+            outcome: AuditOutcome.SUCCESS,
+            entityType: 'USER',
+            entityId: id,
+            metadata: {
+              changedFields: ['status'],
+              newValues: { status },
+            },
+            ...requestContext,
+          }),
+        );
+      }
+      const [user] = await this.prisma.$transaction(operations);
 
       return toAdminUserItem(user as SelectedUser);
     } catch {
@@ -237,7 +313,11 @@ export class AdminUsersService {
     }
   }
 
-  async deleteUser(id: string, administratorId: string): Promise<void> {
+  async deleteUser(
+    id: string,
+    administratorId: string,
+    requestContext: AuditRequestContext = {},
+  ): Promise<void> {
     validateUuid(id, 'użytkownika');
 
     if (id === administratorId) {
@@ -261,7 +341,7 @@ export class AdminUsersService {
     const now = new Date();
 
     try {
-      await this.prisma.$transaction([
+      const operations: Prisma.PrismaPromise<unknown>[] = [
         this.prisma.user.update({
           where: { id },
           data: {
@@ -282,7 +362,25 @@ export class AdminUsersService {
         this.prisma.membership.deleteMany({
           where: { userId: id },
         }),
-      ]);
+      ];
+      if (this.auditService) {
+        operations.push(
+          this.auditService.record({
+            actorId: administratorId,
+            action: 'USER_DELETED',
+            outcome: AuditOutcome.SUCCESS,
+            entityType: 'USER',
+            entityId: id,
+            metadata: {
+              changedFields: ['status', 'deletedAt'],
+              previousValues: { status: 'ACTIVE', deletedAt: null },
+              newValues: { status: 'INACTIVE', deletedAt: now.toISOString() },
+            },
+            ...requestContext,
+          }),
+        );
+      }
+      await this.prisma.$transaction(operations);
     } catch {
       throw new InternalServerErrorException(
         'Nie udało się usunąć konta użytkownika.',
@@ -293,6 +391,8 @@ export class AdminUsersService {
   async addMembership(
     userId: string,
     body: unknown,
+    actorId?: string,
+    requestContext: AuditRequestContext = {},
   ): Promise<AdminMembershipItem> {
     validateUuid(userId, 'użytkownika');
     const data = parseAddMembershipBody(body);
@@ -331,15 +431,36 @@ export class AdminUsersService {
     }
 
     try {
-      const membership = await this.prisma.membership.create({
-        data: {
-          userId,
-          hospitalId: data.hospitalId,
-          departmentId: null,
-          role: data.role,
-        },
-        select: membershipSelection,
-      });
+      const create = (client: typeof this.prisma) =>
+        client.membership.create({
+          data: {
+            userId,
+            hospitalId: data.hospitalId,
+            departmentId: null,
+            role: data.role,
+          },
+          select: membershipSelection,
+        });
+      const membership =
+        this.auditService && actorId
+          ? await this.prisma.$transaction(async (tx) => {
+              const created = await create(tx as typeof this.prisma);
+              await this.auditService!.record(
+                {
+                  actorId,
+                  action: 'MEMBERSHIP_CREATED',
+                  outcome: AuditOutcome.SUCCESS,
+                  entityType: 'MEMBERSHIP',
+                  entityId: created.id,
+                  hospitalId: data.hospitalId,
+                  metadata: { userId, role: data.role },
+                  ...requestContext,
+                },
+                tx,
+              );
+              return created;
+            })
+          : await create(this.prisma);
 
       return toAdminMembershipItem(
         membership as SelectedMembership,
@@ -361,6 +482,8 @@ export class AdminUsersService {
     userId: string,
     membershipId: string,
     body: unknown,
+    actorId?: string,
+    requestContext: AuditRequestContext = {},
   ): Promise<AdminMembershipItem> {
     validateUuid(userId, 'użytkownika');
     validateUuid(membershipId, 'dostępu');
@@ -377,11 +500,36 @@ export class AdminUsersService {
     }
 
     try {
-      const updated = await this.prisma.membership.update({
-        where: { id: membershipId },
-        data: { role },
-        select: membershipSelection,
-      });
+      const update = (client: typeof this.prisma) =>
+        client.membership.update({
+          where: { id: membershipId },
+          data: { role },
+          select: membershipSelection,
+        });
+      const updated =
+        this.auditService && actorId
+          ? await this.prisma.$transaction(async (tx) => {
+              const changed = await update(tx as typeof this.prisma);
+              await this.auditService!.record(
+                {
+                  actorId,
+                  action: 'MEMBERSHIP_UPDATED',
+                  outcome: AuditOutcome.SUCCESS,
+                  entityType: 'MEMBERSHIP',
+                  entityId: membershipId,
+                  hospitalId: changed.hospitalId,
+                  metadata: {
+                    userId,
+                    changedFields: ['role'],
+                    newValues: { role },
+                  },
+                  ...requestContext,
+                },
+                tx,
+              );
+              return changed;
+            })
+          : await update(this.prisma);
 
       return toAdminMembershipItem(updated as SelectedMembership);
     } catch (error) {
@@ -400,17 +548,45 @@ export class AdminUsersService {
   async deleteMembership(
     userId: string,
     membershipId: string,
+    actorId?: string,
+    requestContext: AuditRequestContext = {},
   ): Promise<void> {
     validateUuid(userId, 'użytkownika');
     validateUuid(membershipId, 'dostępu');
 
     try {
-      const result = await this.prisma.membership.deleteMany({
-        where: {
-          id: membershipId,
-          userId,
-        },
-      });
+      const remove = (client: typeof this.prisma) =>
+        client.membership.deleteMany({
+          where: {
+            id: membershipId,
+            userId,
+          },
+        });
+      const result =
+        this.auditService && actorId
+          ? await this.prisma.$transaction(async (tx) => {
+              const existing = await tx.membership.findFirst({
+                where: { id: membershipId, userId },
+                select: { hospitalId: true, role: true },
+              });
+              if (!existing) return { count: 0 };
+              const deleted = await remove(tx as typeof this.prisma);
+              await this.auditService!.record(
+                {
+                  actorId,
+                  action: 'MEMBERSHIP_DELETED',
+                  outcome: AuditOutcome.SUCCESS,
+                  entityType: 'MEMBERSHIP',
+                  entityId: membershipId,
+                  hospitalId: existing.hospitalId,
+                  metadata: { userId, role: existing.role },
+                  ...requestContext,
+                },
+                tx,
+              );
+              return deleted;
+            })
+          : await remove(this.prisma);
 
       if (result.count === 0) {
         throw new NotFoundException(

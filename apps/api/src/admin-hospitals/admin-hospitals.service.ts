@@ -1,12 +1,16 @@
 import {
   BadRequestException,
   Injectable,
+  Optional,
   InternalServerErrorException,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type { Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+import type { AuditRequestContext } from '../audit/audit.types';
+import { AuditOutcome } from '../generated/prisma/enums';
 import type {
   HospitalItem,
   HospitalsPage,
@@ -43,7 +47,10 @@ type SelectedHospital = {
 
 @Injectable()
 export class AdminHospitalsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly auditService?: AuditService,
+  ) {}
 
   async list(query: HospitalsQuery): Promise<HospitalsPage> {
     const page = parsePositiveInteger(query.page, 'page', 1);
@@ -99,18 +106,43 @@ export class AdminHospitalsService {
     }
   }
 
-  async create(body: unknown): Promise<HospitalItem> {
+  async create(
+    body: unknown,
+    actorId?: string,
+    requestContext: AuditRequestContext = {},
+  ): Promise<HospitalItem> {
     const data = parseCreateBody(body);
 
     try {
-      const hospital = await this.prisma.hospital.create({
-        data: {
-          name: data.name,
-          active: true,
-          portalEnabled: false,
-        },
-        select: hospitalSelection,
-      });
+      const create = (client: typeof this.prisma) =>
+        client.hospital.create({
+          data: {
+            name: data.name,
+            active: true,
+            portalEnabled: false,
+          },
+          select: hospitalSelection,
+        });
+      const hospital =
+        this.auditService && actorId
+          ? await this.prisma.$transaction(async (tx) => {
+              const created = await create(tx as typeof this.prisma);
+              await this.auditService!.record(
+                {
+                  actorId,
+                  action: 'HOSPITAL_CREATED',
+                  outcome: AuditOutcome.SUCCESS,
+                  entityType: 'HOSPITAL',
+                  entityId: created.id,
+                  hospitalId: created.id,
+                  metadata: { changedFields: ['name', 'active', 'portalEnabled'] },
+                  ...requestContext,
+                },
+                tx,
+              );
+              return created;
+            })
+          : await create(this.prisma);
 
       return toHospitalItem(hospital as SelectedHospital);
     } catch {
@@ -120,7 +152,12 @@ export class AdminHospitalsService {
     }
   }
 
-  async update(id: string, body: unknown): Promise<HospitalItem> {
+  async update(
+    id: string,
+    body: unknown,
+    actorId?: string,
+    requestContext: AuditRequestContext = {},
+  ): Promise<HospitalItem> {
     if (!isUuid(id)) {
       throw new BadRequestException(
         'Identyfikator szpitala jest nieprawidłowy.',
@@ -130,11 +167,46 @@ export class AdminHospitalsService {
     const data = parseUpdateBody(body);
 
     try {
-      const hospital = await this.prisma.hospital.update({
-        where: { id },
-        data,
-        select: hospitalSelection,
-      });
+      const update = (client: typeof this.prisma) =>
+        client.hospital.update({
+          where: { id },
+          data,
+          select: hospitalSelection,
+        });
+      const hospital =
+        this.auditService && actorId
+          ? await this.prisma.$transaction(async (tx) => {
+              const previous = await tx.hospital.findUnique({
+                where: { id },
+                select: { name: true, active: true, portalEnabled: true },
+              });
+              if (!previous) throw { code: 'P2025' };
+              const updated = await update(tx as typeof this.prisma);
+              const changedFields = Object.keys(data).filter(
+                (field) =>
+                  previous[field as keyof typeof previous] !==
+                  data[field as keyof typeof data],
+              );
+              await this.auditService!.record(
+                {
+                  actorId,
+                  action: 'HOSPITAL_UPDATED',
+                  outcome: AuditOutcome.SUCCESS,
+                  entityType: 'HOSPITAL',
+                  entityId: id,
+                  hospitalId: id,
+                  metadata: {
+                    changedFields,
+                    previousValues: pick(previous, changedFields),
+                    newValues: pick(data, changedFields),
+                  },
+                  ...requestContext,
+                },
+                tx,
+              );
+              return updated;
+            })
+          : await update(this.prisma);
 
       return toHospitalItem(hospital as SelectedHospital);
     } catch (error) {
@@ -152,6 +224,13 @@ export class AdminHospitalsService {
       );
     }
   }
+}
+
+function pick(
+  source: Record<string, unknown>,
+  fields: string[],
+): Record<string, unknown> {
+  return Object.fromEntries(fields.map((field) => [field, source[field]]));
 }
 
 function toHospitalItem(hospital: SelectedHospital): HospitalItem {

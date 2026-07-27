@@ -14,6 +14,7 @@ import {
 import { EmmaAdminGuard } from '../admin-hospitals/emma-admin.guard';
 import type { AuthenticatedRequest } from '../auth/authenticated-request';
 import { SessionAuthGuard } from '../auth/session-auth.guard';
+import { auditContextFromRequest } from '../audit/audit-request';
 import { AdminUsersService } from './admin-users.service';
 import type {
   AdminMembershipItem,
@@ -33,8 +34,15 @@ export class AdminUsersController {
   }
 
   @Post()
-  create(@Body() body: unknown): Promise<AdminUserItem> {
-    return this.usersService.create(body);
+  create(
+    @Body() body: unknown,
+    @Req() request?: AuthenticatedRequest,
+  ): Promise<AdminUserItem> {
+    return this.usersService.create(
+      body,
+      request?.currentUser?.id,
+      request ? auditContextFromRequest(request) : {},
+    );
   }
 
   @Patch(':id/status')
@@ -47,6 +55,7 @@ export class AdminUsersController {
       id,
       body,
       request.currentUser!.id,
+      auditContextFromRequest(request),
     );
   }
 
@@ -56,15 +65,25 @@ export class AdminUsersController {
     @Param('id') id: string,
     @Req() request: AuthenticatedRequest,
   ): Promise<void> {
-    return this.usersService.deleteUser(id, request.currentUser!.id);
+    return this.usersService.deleteUser(
+      id,
+      request.currentUser!.id,
+      auditContextFromRequest(request),
+    );
   }
 
   @Post(':id/memberships')
   addMembership(
     @Param('id') id: string,
     @Body() body: unknown,
+    @Req() request?: AuthenticatedRequest,
   ): Promise<AdminMembershipItem> {
-    return this.usersService.addMembership(id, body);
+    return this.usersService.addMembership(
+      id,
+      body,
+      request?.currentUser?.id,
+      request ? auditContextFromRequest(request) : {},
+    );
   }
 
   @Patch(':userId/memberships/:membershipId')
@@ -72,11 +91,14 @@ export class AdminUsersController {
     @Param('userId') userId: string,
     @Param('membershipId') membershipId: string,
     @Body() body: unknown,
+    @Req() request?: AuthenticatedRequest,
   ): Promise<AdminMembershipItem> {
     return this.usersService.updateMembership(
       userId,
       membershipId,
       body,
+      request?.currentUser?.id,
+      request ? auditContextFromRequest(request) : {},
     );
   }
 
@@ -85,7 +107,13 @@ export class AdminUsersController {
   deleteMembership(
     @Param('userId') userId: string,
     @Param('membershipId') membershipId: string,
+    @Req() request?: AuthenticatedRequest,
   ): Promise<void> {
-    return this.usersService.deleteMembership(userId, membershipId);
+    return this.usersService.deleteMembership(
+      userId,
+      membershipId,
+      request?.currentUser?.id,
+      request ? auditContextFromRequest(request) : {},
+    );
   }
 }

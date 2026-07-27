@@ -2,10 +2,14 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { MembershipRole } from '../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+import type { AuditRequestContext } from '../audit/audit.types';
+import { AuditOutcome } from '../generated/prisma/enums';
 import {
   CurrentHospitalScope,
   preferHospitalAdmin,
@@ -30,6 +34,7 @@ export class PortalHospitalsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly currentHospitalScope: CurrentHospitalScope,
+    @Optional() private readonly auditService?: AuditService,
   ) {}
 
   async list(
@@ -67,6 +72,7 @@ export class PortalHospitalsService {
     userId: string,
     sessionId: string,
     body: unknown,
+    requestContext: AuditRequestContext = {},
   ): Promise<CurrentHospital> {
     const hospitalId = parseHospitalId(body);
     const memberships = await this.prisma.membership.findMany({
@@ -97,7 +103,8 @@ export class PortalHospitalsService {
       );
     }
 
-    const result = await this.prisma.userSession.updateMany({
+    const update = (client: typeof this.prisma) =>
+      client.userSession.updateMany({
       where: {
         id: sessionId,
         userId,
@@ -106,6 +113,26 @@ export class PortalHospitalsService {
       },
       data: { activeHospitalId: hospitalId },
     });
+    const result = this.auditService
+      ? await this.prisma.$transaction(async (tx) => {
+          const changed = await update(tx as typeof this.prisma);
+          if (changed.count === 1) {
+            await this.auditService!.record(
+              {
+                actorId: userId,
+                action: 'ACTIVE_HOSPITAL_CHANGED',
+                outcome: AuditOutcome.SUCCESS,
+                entityType: 'HOSPITAL',
+                entityId: hospitalId,
+                hospitalId,
+                ...requestContext,
+              },
+              tx,
+            );
+          }
+          return changed;
+        })
+      : await update(this.prisma);
 
     if (result.count !== 1) {
       throw new UnauthorizedException();
