@@ -20,7 +20,8 @@
     "admin:create": "npm run prisma:generate && ts-node --project apps/api/tsconfig.json apps/api/src/scripts/admin-create.ts",
     "web:dev": "npm --workspace @emma/web run dev",
     "web:build": "npm --workspace @emma/web run build",
-    "web:test": "npm --workspace @emma/web run test"
+    "web:test": "npm --workspace @emma/web run test",
+    "web:start": "serve -s apps/web/dist -l tcp://0.0.0.0:$PORT"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
@@ -32,7 +33,8 @@
     "dotenv": "^17.4.2",
     "pg": "^8.22.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "serve": "^14.2.6"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.10",
