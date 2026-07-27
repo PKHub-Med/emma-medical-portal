@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
+import { defaultPathFor } from '../App';
 import { login } from '../api';
 import {
   currentUserQueryKey,
@@ -41,8 +42,10 @@ export function LoginPage() {
     mutationFn: login,
     onSuccess: async () => {
       queryClient.removeQueries({ queryKey: currentUserQueryKey });
-      await queryClient.fetchQuery(currentUserQueryOptions());
-      navigate('/app', { replace: true });
+      const user = await queryClient.fetchQuery(
+        currentUserQueryOptions(),
+      );
+      navigate(defaultPathFor(user), { replace: true });
     },
     onError: () => {
       setLoginError(invalidCredentialsMessage);
@@ -137,9 +140,7 @@ export function LoginPage() {
             type="submit"
             disabled={loginMutation.isPending}
           >
-            {loginMutation.isPending
-              ? 'Logowanie…'
-              : 'Zaloguj się'}
+            {loginMutation.isPending ? 'Logowanie…' : 'Zaloguj się'}
           </button>
         </form>
       </section>

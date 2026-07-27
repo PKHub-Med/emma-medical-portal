@@ -11,7 +11,7 @@ export function currentUserQueryOptions() {
     queryKey: currentUserQueryKey,
     queryFn: getCurrentUser,
     retry: false,
-    staleTime: 30_000,
+    staleTime: Infinity,
   });
 }
 
