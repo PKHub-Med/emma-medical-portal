@@ -50,6 +50,42 @@ export interface UpdateHospitalInput {
   portalEnabled?: boolean;
 }
 
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED';
+export type MembershipRole = 'HOSPITAL_USER' | 'HOSPITAL_ADMIN';
+
+export interface AdminUserMembership {
+  id: string;
+  hospitalId: string;
+  hospitalName: string;
+  departmentId: string | null;
+  role: MembershipRole;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  status: UserStatus;
+  systemRole: CurrentUser['systemRole'];
+  lastLoginAt: string | null;
+  createdAt: string;
+  memberships: AdminUserMembership[];
+}
+
+export interface AdminUsersResponse {
+  items: AdminUser[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+export interface AdminUsersParams {
+  page: number;
+  pageSize: number;
+  search?: string;
+  status?: UserStatus;
+  hospitalId?: string;
+}
+
 const apiUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 async function apiRequest<T>(
@@ -153,4 +189,102 @@ export function updateAdminHospital({
     },
     body: JSON.stringify(data),
   });
+}
+
+export function getAdminUsers(
+  params: AdminUsersParams,
+): Promise<AdminUsersResponse> {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    pageSize: String(params.pageSize),
+  });
+
+  if (params.search) {
+    query.set('search', params.search);
+  }
+
+  if (params.status) {
+    query.set('status', params.status);
+  }
+
+  if (params.hospitalId) {
+    query.set('hospitalId', params.hospitalId);
+  }
+
+  return apiRequest(`/admin/users?${query.toString()}`);
+}
+
+export function createAdminUser(input: {
+  email: string;
+  temporaryPassword: string;
+  hospitalId: string;
+  membershipRole: MembershipRole;
+}): Promise<AdminUser> {
+  return apiRequest('/admin/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateAdminUserStatus({
+  id,
+  status,
+}: {
+  id: string;
+  status: UserStatus;
+}): Promise<AdminUser> {
+  return apiRequest(`/admin/users/${id}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function addAdminUserMembership({
+  userId,
+  hospitalId,
+  role,
+}: {
+  userId: string;
+  hospitalId: string;
+  role: MembershipRole;
+}): Promise<AdminUserMembership> {
+  return apiRequest(`/admin/users/${userId}/memberships`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ hospitalId, role }),
+  });
+}
+
+export function updateAdminUserMembership({
+  userId,
+  membershipId,
+  role,
+}: {
+  userId: string;
+  membershipId: string;
+  role: MembershipRole;
+}): Promise<AdminUserMembership> {
+  return apiRequest(
+    `/admin/users/${userId}/memberships/${membershipId}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    },
+  );
+}
+
+export function deleteAdminUserMembership({
+  userId,
+  membershipId,
+}: {
+  userId: string;
+  membershipId: string;
+}): Promise<void> {
+  return apiRequest(
+    `/admin/users/${userId}/memberships/${membershipId}`,
+    { method: 'DELETE' },
+  );
 }

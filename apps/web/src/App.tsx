@@ -6,6 +6,7 @@ import { PortalLayout } from './layouts/PortalLayout';
 import { AccessDeniedPage } from './pages/AccessDeniedPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminHospitalsPage } from './pages/AdminHospitalsPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
 import { LoginPage } from './pages/LoginPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { PortalDashboardPage } from './pages/PortalDashboardPage';
@@ -172,12 +173,7 @@ export function App() {
             />
             <Route
               path="users"
-              element={
-                <PlaceholderPage
-                  title="Użytkownicy i dostęp"
-                  description="Użytkownicy i dostęp — moduł zostanie wdrożony w następnym etapie"
-                />
-              }
+              element={<AdminUsersPage />}
             />
             <Route
               path="statuses"
