@@ -1,4 +1,8 @@
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  ExecutionContext,
+  ForbiddenException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { EmmaAdminGuard } from '../src/admin-hospitals/emma-admin.guard';
 import { AuditService, sanitizeMetadata } from '../src/audit/audit.service';
 import { AuthService } from '../src/auth/auth.service';
@@ -8,6 +12,8 @@ import type { PrismaService } from '../src/prisma/prisma.service';
 import { PortalHospitalsService } from '../src/portal-hospitals/portal-hospitals.service';
 import type { CurrentHospitalScope } from '../src/portal-hospitals/current-hospital-scope.service';
 import { AdminUsersService } from '../src/admin-users/admin-users.service';
+import { SessionAuthGuard } from '../src/auth/session-auth.guard';
+import { AuditController } from '../src/audit/audit.controller';
 
 describe('Audit module', () => {
   it('removes passwords, tokens, cookies, authorization and secrets recursively', () => {
@@ -94,6 +100,58 @@ describe('Audit module', () => {
         contextFor({ systemRole: 'USER' }),
       ),
     ).toThrow(ForbiddenException);
+  });
+
+  it('returns 401 for GET /admin/audit without a session', async () => {
+    const guard = new SessionAuthGuard({} as AuthService);
+
+    await expect(
+      guard.canActivate(
+        requestContext({ headers: {} }),
+      ),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('returns 403 for GET /admin/audit to USER', async () => {
+    const request = {
+      headers: { cookie: 'emma_session=token' },
+    };
+    const sessionGuard = new SessionAuthGuard({
+      getAuthenticatedContext: jest.fn().mockResolvedValue({
+        user: { systemRole: 'USER' },
+        sessionId: 'session-id',
+      }),
+    } as unknown as AuthService);
+
+    await expect(
+      sessionGuard.canActivate(requestContext(request)),
+    ).resolves.toBe(true);
+    expect(() =>
+      new EmmaAdminGuard().canActivate(requestContext(request)),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('returns 200 data for GET /admin/audit to EMMA_ADMIN', async () => {
+    const page = { items: [], page: 1, pageSize: 25, totalCount: 0 };
+    const request = {
+      headers: { cookie: 'emma_session=token' },
+    };
+    const sessionGuard = new SessionAuthGuard({
+      getAuthenticatedContext: jest.fn().mockResolvedValue({
+        user: { systemRole: 'EMMA_ADMIN' },
+        sessionId: 'session-id',
+      }),
+    } as unknown as AuthService);
+    const list = jest.fn().mockResolvedValue(page);
+    const controller = new AuditController({
+      list,
+    } as unknown as AuditService);
+
+    await sessionGuard.canActivate(requestContext(request));
+    expect(
+      new EmmaAdminGuard().canActivate(requestContext(request)),
+    ).toBe(true);
+    await expect(controller.list({})).resolves.toEqual(page);
   });
 
   it('applies filters, totalCount, pagination and newest-first ordering', async () => {
@@ -316,6 +374,14 @@ function contextFor(user: object): ExecutionContext {
   return {
     switchToHttp: () => ({
       getRequest: () => ({ currentUser: user }),
+    }),
+  } as unknown as ExecutionContext;
+}
+
+function requestContext(request: object): ExecutionContext {
+  return {
+    switchToHttp: () => ({
+      getRequest: () => request,
     }),
   } as unknown as ExecutionContext;
 }
