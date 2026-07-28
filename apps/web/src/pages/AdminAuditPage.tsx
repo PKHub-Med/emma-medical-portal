@@ -28,6 +28,10 @@ export const auditActionLabels: Record<string, string> = {
   CONTACT_DEACTIVATED: 'Dezaktywowano kontakt',
   CONTACT_LINKED_TO_USER: 'Powiązano kontakt z użytkownikiem',
   COMMUNICATION_SETTINGS_UPDATED: 'Zmieniono ustawienia komunikacji',
+  NOTIFICATION_EVENT_CREATED: 'Utworzono zdarzenie komunikacyjne',
+  NOTIFICATION_EVENT_BLOCKED: 'Zablokowano zdarzenie komunikacyjne',
+  NOTIFICATION_EVENT_REPROCESSED: 'Ponownie przetworzono zdarzenie',
+  EMAIL_DELIVERY_QUEUED: 'Przygotowano wiadomość e-mail',
 };
 
 export function AdminAuditPage() {

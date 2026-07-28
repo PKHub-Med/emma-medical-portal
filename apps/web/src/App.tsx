@@ -10,6 +10,7 @@ import { AdminHospitalDetailsPage } from './pages/AdminHospitalDetailsPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminAuditPage } from './pages/AdminAuditPage';
 import { AdminStatusesPage } from './pages/AdminStatusesPage';
+import { AdminEmailsPage } from './pages/AdminEmailsPage';
 import { LoginPage } from './pages/LoginPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { PortalDashboardPage } from './pages/PortalDashboardPage';
@@ -191,12 +192,7 @@ export function App() {
             />
             <Route
               path="emails"
-              element={
-                <PlaceholderPage
-                  title="E-maile"
-                  description="E-maile — moduł zostanie wdrożony w następnym etapie"
-                />
-              }
+              element={<AdminEmailsPage />}
             />
             <Route
               path="audit"

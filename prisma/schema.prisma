@@ -52,6 +52,41 @@ enum StatusMappingSourceEntityType {
   @@map("status_mapping_source_entity_type")
 }
 
+enum NotificationEntityType {
+  REPAIR
+  INSPECTION
+
+  @@map("notification_entity_type")
+}
+
+enum NotificationEventType {
+  STATUS_CHANGED
+
+  @@map("notification_event_type")
+}
+
+enum NotificationEventStatus {
+  PENDING
+  READY
+  BLOCKED
+  COMPLETED
+  FAILED
+
+  @@map("notification_event_status")
+}
+
+enum EmailDeliveryStatus {
+  QUEUED
+  SKIPPED
+  SENT
+  DELIVERED
+  BOUNCED
+  COMPLAINED
+  FAILED
+
+  @@map("email_delivery_status")
+}
+
 model Hospital {
   id            String       @id @default(uuid()) @db.Uuid
   name          String
@@ -66,6 +101,7 @@ model Hospital {
   devices        Device[]
   contacts       Contact[]
   communicationSettings CommunicationSettings?
+  notificationEvents NotificationEvent[]
 
   @@map("hospitals")
 }
@@ -272,6 +308,7 @@ model Contact {
   linkedUser        User?     @relation("ContactLinkedUser", fields: [linkedUserId], references: [id], onDelete: SetNull)
   primaryFor        CommunicationSettings[] @relation("PrimaryContact")
   communicationRecipients CommunicationRecipient[]
+  emailDeliveries EmailDelivery[]
 
   @@unique([hospitalId, email], map: "contacts_hospital_id_email_key")
   @@index([hospitalId], map: "contacts_hospital_id_idx")
@@ -332,6 +369,62 @@ model AuditEvent {
   @@index([hospitalId, createdAt], map: "audit_events_hospital_id_created_at_idx")
   @@index([outcome, createdAt], map: "audit_events_outcome_created_at_idx")
   @@map("audit_events")
+}
+
+model NotificationEvent {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  eventKey             String                  @unique @map("event_key")
+  hospitalId           String                  @map("hospital_id") @db.Uuid
+  entityType           NotificationEntityType  @map("entity_type")
+  entityId             String                  @map("entity_id") @db.Uuid
+  eventType            NotificationEventType   @map("event_type")
+  customerStatusCode   String                  @map("customer_status_code")
+  customerLabel        String                  @map("customer_label")
+  emailTemplateId      String?                 @map("email_template_id")
+  status               NotificationEventStatus @default(PENDING)
+  blockedReasonCode    String?                 @map("blocked_reason_code")
+  blockedReasonMessage String?                 @map("blocked_reason_message")
+  payload              Json
+  occurredAt           DateTime                @map("occurred_at") @db.Timestamptz(3)
+  processedAt          DateTime?               @map("processed_at") @db.Timestamptz(3)
+  createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  hospital             Hospital                @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  deliveries           EmailDelivery[]
+
+  @@index([hospitalId, createdAt], map: "notification_events_hospital_id_created_at_idx")
+  @@index([status, createdAt], map: "notification_events_status_created_at_idx")
+  @@index([entityType, entityId], map: "notification_events_entity_type_entity_id_idx")
+  @@index([eventType, createdAt], map: "notification_events_event_type_created_at_idx")
+  @@map("notification_events")
+}
+
+model EmailDelivery {
+  id                  String              @id @default(uuid()) @db.Uuid
+  notificationEventId String              @map("notification_event_id") @db.Uuid
+  contactId           String?             @map("contact_id") @db.Uuid
+  recipientEmail      String              @map("recipient_email") @db.VarChar(320)
+  recipientName       String?             @map("recipient_name")
+  status              EmailDeliveryStatus @default(QUEUED)
+  providerId          String?             @map("provider_id")
+  attempts            Int                 @default(0)
+  lastAttemptAt       DateTime?           @map("last_attempt_at") @db.Timestamptz(3)
+  sentAt              DateTime?           @map("sent_at") @db.Timestamptz(3)
+  deliveredAt         DateTime?           @map("delivered_at") @db.Timestamptz(3)
+  bouncedAt           DateTime?           @map("bounced_at") @db.Timestamptz(3)
+  lastErrorCode       String?             @map("last_error_code")
+  lastErrorMessage    String?             @map("last_error_message")
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  notificationEvent   NotificationEvent   @relation(fields: [notificationEventId], references: [id], onDelete: Cascade)
+  contact             Contact?            @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@unique([notificationEventId, recipientEmail], map: "email_deliveries_event_recipient_key")
+  @@index([notificationEventId], map: "email_deliveries_notification_event_id_idx")
+  @@index([status, createdAt], map: "email_deliveries_status_created_at_idx")
+  @@index([recipientEmail], map: "email_deliveries_recipient_email_idx")
+  @@index([providerId], map: "email_deliveries_provider_id_idx")
+  @@map("email_deliveries")
 }
 
 model Membership {

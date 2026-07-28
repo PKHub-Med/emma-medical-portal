@@ -1929,6 +1929,18 @@ h1 {
   .mapping-form-grid .field { grid-column: 1; }
 }
 .repair-detail-grid { display: grid; gap: 16px; }
+.email-notice { margin: 20px 0; padding: 14px 16px; border: 1px solid #e9c264; border-radius: 8px; color: #6f4c00; background: #fff7dc; line-height: 1.5; }
+.email-toolbar { flex-wrap: wrap; align-items: end; }
+.email-toolbar .hospital-search { flex: 1; min-width: 280px; }
+.email-toolbar .hospital-filter, .email-toolbar .audit-date { min-width: 150px; }
+.email-table small { display: block; margin-top: 5px; color: #607487; }
+.email-table .status-badge { margin: 2px 4px 2px 0; }
+.email-table .blocked-reason { max-width: 190px; color: #9c2020; font-weight: 700; }
+.email-dialog { width: min(100%, 850px); max-height: calc(100vh - 40px); overflow-y: auto; }
+.payload-preview { overflow-x: auto; padding: 14px; border-radius: 8px; color: #173e5e; background: #f1f5f7; font-size: .82rem; }
+.delivery-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.delivery-list li { display: grid; grid-template-columns: 1.2fr 1.5fr auto 1fr; align-items: center; gap: 10px; padding: 12px; border: 1px solid #d5e0e8; border-radius: 8px; }
+@media (max-width: 900px) { .email-toolbar { align-items: stretch; flex-direction: column; } .email-toolbar > * { width: 100%; } .delivery-list li { grid-template-columns: 1fr; } }
 .status-timeline { display: flex; flex-direction: column; gap: 18px; margin: 0; padding-left: 22px; }
 .status-timeline li { padding-left: 8px; }
 .status-timeline time { display: block; margin-top: 7px; color: #607487; font-size: .85rem; }

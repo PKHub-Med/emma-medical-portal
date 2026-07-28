@@ -231,6 +231,36 @@ export interface AuditParams {
   dateTo?: string;
 }
 
+export type NotificationEntityType = 'REPAIR' | 'INSPECTION';
+export type NotificationEventStatus = 'PENDING' | 'READY' | 'BLOCKED' | 'COMPLETED' | 'FAILED';
+export type EmailDeliveryStatus = 'QUEUED' | 'SKIPPED' | 'SENT' | 'DELIVERED' | 'BOUNCED' | 'COMPLAINED' | 'FAILED';
+export interface EmailDelivery {
+  id: string; recipientEmail: string; recipientName: string | null;
+  status: EmailDeliveryStatus; attempts: number; providerId: string | null;
+  lastErrorMessage: string | null;
+}
+export interface NotificationEvent {
+  id: string; eventKey: string; eventType: 'STATUS_CHANGED';
+  entityType: NotificationEntityType; entityId: string; businessNumber: string;
+  customerLabel: string; status: NotificationEventStatus;
+  blockedReasonCode: string | null; blockedReasonMessage: string | null;
+  hospital: { id: string; name: string }; occurredAt: string; createdAt: string;
+  deliveries: EmailDelivery[];
+}
+export interface NotificationEventDetails extends NotificationEvent {
+  customerStatusCode: string; emailTemplateId: string | null;
+  payload: Record<string, unknown>;
+  communicationSettings: { enabled: boolean; primaryContactId: string | null; additionalRecipientCount: number; emailTemplateId: string | null } | null;
+}
+export interface AdminEmailsParams {
+  page: number; pageSize: number; search?: string; hospitalId?: string;
+  entityType?: NotificationEntityType; eventStatus?: NotificationEventStatus;
+  deliveryStatus?: EmailDeliveryStatus; recipient?: string; dateFrom?: string; dateTo?: string;
+}
+export interface AdminEmailsResponse {
+  items: NotificationEvent[]; page: number; pageSize: number; totalCount: number;
+}
+
 export interface DepartmentOption {
   id: string;
   name: string;
@@ -810,6 +840,22 @@ export function getAdminAudit(
     }
   });
   return apiRequest(`/admin/audit?${query.toString()}`);
+}
+
+export function getAdminEmails(params: AdminEmailsParams): Promise<AdminEmailsResponse> {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  return apiRequest(`/admin/emails?${query.toString()}`);
+}
+
+export function getAdminEmail(id: string): Promise<NotificationEventDetails> {
+  return apiRequest(`/admin/emails/${encodeURIComponent(id)}`);
+}
+
+export function reprocessAdminEmail(id: string): Promise<NotificationEventDetails> {
+  return apiRequest(`/admin/emails/${encodeURIComponent(id)}/reprocess`, { method: 'POST' });
 }
 
 export function getDevices(params: DevicesParams): Promise<DevicesResponse> {

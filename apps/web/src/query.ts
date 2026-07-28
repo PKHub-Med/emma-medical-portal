@@ -24,6 +24,8 @@ import {
   getDashboardSummary,
   getStatusMappings,
   type StatusMappingsParams,
+  getAdminEmails,
+  type AdminEmailsParams,
 } from './api';
 
 export const currentUserQueryKey = ['current-user'] as const;
@@ -101,6 +103,16 @@ export function adminAuditQueryOptions(params: AuditParams) {
   return queryOptions({
     queryKey: [...adminAuditQueryKey, params],
     queryFn: () => getAdminAudit(params),
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export const adminEmailsQueryKey = ['admin-emails'] as const;
+
+export function adminEmailsQueryOptions(params: AdminEmailsParams) {
+  return queryOptions({
+    queryKey: [...adminEmailsQueryKey, params],
+    queryFn: () => getAdminEmails(params),
     placeholderData: (previousData) => previousData,
   });
 }

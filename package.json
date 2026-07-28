@@ -23,6 +23,7 @@
     "demo:seed-inspections": "npm run prisma:generate && ts-node --project apps/api/tsconfig.json apps/api/src/scripts/demo-seed-inspections.ts",
     "demo:seed-status-mappings": "npm run prisma:generate && ts-node --project apps/api/tsconfig.json apps/api/src/scripts/demo-seed-status-mappings.ts",
     "demo:seed-contacts": "npm run prisma:generate && ts-node --project apps/api/tsconfig.json apps/api/src/scripts/demo-seed-contacts.ts",
+    "demo:seed-notification-events": "npm run prisma:generate && ts-node --project apps/api/tsconfig.json apps/api/src/scripts/demo-seed-notification-events.ts",
     "web:dev": "npm --workspace @emma/web run dev",
     "web:build": "npm --workspace @emma/web run build",
     "web:test": "npm --workspace @emma/web run test",
