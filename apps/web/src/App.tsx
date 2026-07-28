@@ -8,6 +8,7 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminHospitalsPage } from './pages/AdminHospitalsPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminAuditPage } from './pages/AdminAuditPage';
+import { AdminStatusesPage } from './pages/AdminStatusesPage';
 import { LoginPage } from './pages/LoginPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import { PortalDashboardPage } from './pages/PortalDashboardPage';
@@ -172,12 +173,7 @@ export function App() {
             />
             <Route
               path="statuses"
-              element={
-                <PlaceholderPage
-                  title="Statusy"
-                  description="Statusy — moduł zostanie wdrożony w następnym etapie"
-                />
-              }
+              element={<AdminStatusesPage />}
             />
             <Route
               path="errors"

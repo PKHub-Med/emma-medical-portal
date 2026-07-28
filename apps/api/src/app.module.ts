@@ -11,6 +11,7 @@ import { DevicesModule } from './devices/devices.module';
 import { RepairsModule } from './repairs/repairs.module';
 import { InspectionsModule } from './inspections/inspections.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { StatusMappingsModule } from './status-mappings/status-mappings.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     RepairsModule,
     InspectionsModule,
     DashboardModule,
+    StatusMappingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

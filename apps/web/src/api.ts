@@ -62,6 +62,56 @@ export interface UpdateHospitalInput {
   portalEnabled?: boolean;
 }
 
+export type StatusMappingEntityType = 'REPAIR' | 'INSPECTION';
+
+export interface StatusMapping {
+  id: string;
+  sourceEntityType: StatusMappingEntityType;
+  sourceStatus: string;
+  customerStatusCode: string;
+  customerLabel: string;
+  emailTemplateId: string | null;
+  sendEmail: boolean;
+  isTerminal: boolean;
+  requiresAction: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StatusMappingsResponse {
+  items: StatusMapping[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+export interface StatusMappingsParams {
+  page: number;
+  pageSize: number;
+  search?: string;
+  sourceEntityType?: StatusMappingEntityType;
+  active?: boolean;
+  sendEmail?: boolean;
+}
+
+export interface CreateStatusMappingInput {
+  sourceEntityType: StatusMappingEntityType;
+  sourceStatus: string;
+  customerStatusCode: string;
+  customerLabel: string;
+  emailTemplateId: string | null;
+  sendEmail: boolean;
+  isTerminal: boolean;
+  requiresAction: boolean;
+  active: boolean;
+}
+
+export type UpdateStatusMappingInput = Omit<
+  CreateStatusMappingInput,
+  'sourceEntityType'
+>;
+
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED';
 export type MembershipRole = 'HOSPITAL_USER' | 'HOSPITAL_ADMIN';
 
@@ -480,6 +530,48 @@ export function updateAdminHospital({
     headers: {
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify(data),
+  });
+}
+
+export function getStatusMappings(
+  params: StatusMappingsParams,
+): Promise<StatusMappingsResponse> {
+  const query = new URLSearchParams({
+    page: String(params.page),
+    pageSize: String(params.pageSize),
+  });
+  if (params.search) query.set('search', params.search);
+  if (params.sourceEntityType) {
+    query.set('sourceEntityType', params.sourceEntityType);
+  }
+  if (params.active !== undefined) query.set('active', String(params.active));
+  if (params.sendEmail !== undefined) {
+    query.set('sendEmail', String(params.sendEmail));
+  }
+  return apiRequest(`/admin/statuses?${query.toString()}`);
+}
+
+export function createStatusMapping(
+  input: CreateStatusMappingInput,
+): Promise<StatusMapping> {
+  return apiRequest('/admin/statuses', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateStatusMapping({
+  id,
+  data,
+}: {
+  id: string;
+  data: UpdateStatusMappingInput;
+}): Promise<StatusMapping> {
+  return apiRequest(`/admin/statuses/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 }

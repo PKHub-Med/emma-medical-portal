@@ -45,6 +45,13 @@ enum StatusHistoryEntityType {
   @@map("status_history_entity_type")
 }
 
+enum StatusMappingSourceEntityType {
+  REPAIR
+  INSPECTION
+
+  @@map("status_mapping_source_entity_type")
+}
+
 model Hospital {
   id            String       @id @default(uuid()) @db.Uuid
   name          String
@@ -194,6 +201,28 @@ model StatusHistory {
   @@index([entityType, entityId, changedAt], map: "status_history_entity_changed_at_idx")
   @@index([changedAt], map: "status_history_changed_at_idx")
   @@map("status_history")
+}
+
+model StatusMapping {
+  id                   String                        @id @default(uuid()) @db.Uuid
+  sourceEntityType     StatusMappingSourceEntityType @map("source_entity_type")
+  sourceStatus         String                        @map("source_status") @db.VarChar(200)
+  customerStatusCode   String                        @map("customer_status_code") @db.VarChar(100)
+  customerLabel        String                        @map("customer_label") @db.VarChar(200)
+  emailTemplateId      String?                       @map("email_template_id") @db.VarChar(100)
+  sendEmail            Boolean                       @default(false) @map("send_email")
+  isTerminal           Boolean                       @default(false) @map("is_terminal")
+  requiresAction       Boolean                       @default(false) @map("requires_action")
+  active               Boolean                       @default(true)
+  createdAt            DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([sourceEntityType, sourceStatus], map: "status_mappings_source_entity_type_source_status_key")
+  @@index([sourceEntityType], map: "status_mappings_source_entity_type_idx")
+  @@index([active], map: "status_mappings_active_idx")
+  @@index([customerStatusCode], map: "status_mappings_customer_status_code_idx")
+  @@index([sendEmail], map: "status_mappings_send_email_idx")
+  @@map("status_mappings")
 }
 
 model User {

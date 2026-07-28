@@ -1692,6 +1692,52 @@ h1 {
 .repair-status-neutral { color: #4d5e6b; background: #edf0f2; }
 .repair-status-danger { color: #9c2020; background: #fde8e8; }
 .inspection-badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+.status-mapping-toolbar {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid #d5e0e8;
+  border-radius: 10px;
+  background: #fff;
+}
+.status-mapping-toolbar .hospital-search { flex: 1; min-width: 250px; }
+.status-mapping-toolbar .hospital-filter { display: grid; gap: 6px; }
+.status-mapping-toolbar label { color: #314f66; font-size: .82rem; font-weight: 700; }
+.status-mapping-toolbar select { min-height: 42px; padding: 8px 11px; border: 1px solid #a9bac8; border-radius: 7px; background: #fff; }
+.status-mapping-table code { color: #173e5e; font-weight: 750; }
+.status-mapping-table td > strong,
+.mapping-code,
+.mapping-action,
+.mapping-warning { display: block; }
+.mapping-code { margin-top: 4px; color: #607487; font-family: monospace; }
+.mapping-action { margin-top: 5px; color: #805500; }
+.mapping-warning { margin-top: 6px; color: #9c2020; font-weight: 750; }
+.status-mapping-skeleton { grid-template-columns: repeat(7, minmax(70px, 1fr)); }
+.status-mapping-dialog { width: min(100%, 760px); max-height: calc(100vh - 40px); overflow-y: auto; }
+.mapping-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.mapping-form-grid .field { margin: 0; }
+.mapping-form-grid .field:nth-child(2),
+.mapping-form-grid .field:nth-child(5) { grid-column: 1 / -1; }
+.mapping-form-grid select { width: 100%; min-height: 42px; padding: 8px 11px; border: 1px solid #a9bac8; border-radius: 7px; background: #fff; }
+.field-help { margin: 6px 0 0; color: #607487; font-size: .8rem; line-height: 1.4; }
+.mapping-checkboxes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; margin: 20px 0; }
+.mapping-checkboxes label { display: flex; align-items: center; gap: 9px; font-weight: 700; }
+.mapping-checkboxes input { width: 18px; height: 18px; }
+.mapping-email-warning { margin: 14px 0; padding: 13px 15px; border: 1px solid #e9c264; border-radius: 8px; color: #6f4c00; background: #fff7dc; line-height: 1.45; }
+
+@media (max-width: 900px) {
+  .status-mapping-toolbar { align-items: stretch; flex-direction: column; }
+  .status-mapping-toolbar .hospital-filter select { width: 100%; }
+}
+
+@media (max-width: 700px) {
+  .mapping-form-grid,
+  .mapping-checkboxes { grid-template-columns: 1fr; }
+  .mapping-form-grid .field { grid-column: 1; }
+}
 .repair-detail-grid { display: grid; gap: 16px; }
 .status-timeline { display: flex; flex-direction: column; gap: 18px; margin: 0; padding-left: 22px; }
 .status-timeline li { padding-left: 8px; }

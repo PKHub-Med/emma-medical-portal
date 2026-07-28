@@ -21,6 +21,8 @@ export const auditActionLabels: Record<string, string> = {
   MEMBERSHIP_UPDATED: 'Zmieniono dostęp',
   MEMBERSHIP_DELETED: 'Odebrano dostęp',
   ACTIVE_HOSPITAL_CHANGED: 'Zmieniono aktywny szpital',
+  STATUS_MAPPING_CREATED: 'Utworzono mapowanie statusu',
+  STATUS_MAPPING_UPDATED: 'Zmieniono mapowanie statusu',
 };
 
 export function AdminAuditPage() {

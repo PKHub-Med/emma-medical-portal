@@ -22,6 +22,8 @@ import {
   getInspection,
   type InspectionsParams,
   getDashboardSummary,
+  getStatusMappings,
+  type StatusMappingsParams,
 } from './api';
 
 export const currentUserQueryKey = ['current-user'] as const;
@@ -74,6 +76,16 @@ export function adminHospitalsQueryOptions(
 }
 
 export const adminUsersQueryKey = ['admin-users'] as const;
+
+export const statusMappingsQueryKey = ['status-mappings'] as const;
+
+export function statusMappingsQueryOptions(params: StatusMappingsParams) {
+  return queryOptions({
+    queryKey: [...statusMappingsQueryKey, params],
+    queryFn: () => getStatusMappings(params),
+    placeholderData: (previousData) => previousData,
+  });
+}
 
 export function adminUsersQueryOptions(params: AdminUsersParams) {
   return queryOptions({
