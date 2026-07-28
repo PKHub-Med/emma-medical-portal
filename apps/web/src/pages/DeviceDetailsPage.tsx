@@ -2,6 +2,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError } from '../api';
 import { deviceQueryOptions, useCurrentUser } from '../query';
+import {
+  formatInspectionDate,
+  InspectionStatusBadge,
+  OverdueBadge,
+} from './InspectionsPage';
 
 export function DeviceDetailsPage() {
   const { id = '' } = useParams();
@@ -96,7 +101,29 @@ export function DeviceDetailsPage() {
             </ul>
           )}
         </section>
-        <EmptySection title="Przeglądy" text="Brak przeglądów przypisanych do urządzenia." />
+        <section className="detail-card">
+          <h2>Przeglądy</h2>
+          {item.inspections.length === 0 ? (
+            <p>Brak przeglądów przypisanych do urządzenia.</p>
+          ) : (
+            <ul className="device-repairs">
+              {item.inspections.map((inspection) => (
+                <li key={inspection.id}>
+                  <button type="button" onClick={() => navigate(`/app/inspections/${inspection.id}`)}>
+                    <span>
+                      <strong>{inspection.businessNumber}</strong>
+                      <small>{inspection.result ?? 'Brak danych'} · {formatInspectionDate(inspection.dueAt)}</small>
+                    </span>
+                    <span className="inspection-badges">
+                      <InspectionStatusBadge code={inspection.customerStatusCode} label={inspection.customerLabel} />
+                      {inspection.isOverdue && <OverdueBadge />}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
         <EmptySection title="Dokumenty" text="Brak dokumentów przypisanych do urządzenia." />
       </div>
     </section>

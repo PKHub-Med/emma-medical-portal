@@ -162,8 +162,20 @@ export interface DeviceDetails extends PortalDevice {
   passportNo: string | null;
   hospital: { id: string; name: string };
   repairs: DeviceRepair[];
-  inspections: [];
+  inspections: DeviceInspection[];
   documents: [];
+}
+
+export interface DeviceInspection {
+  id: string;
+  businessNumber: string;
+  customerStatusCode: string;
+  customerLabel: string;
+  result: string | null;
+  plannedAt: string | null;
+  performedAt: string | null;
+  dueAt: string | null;
+  isOverdue: boolean;
 }
 
 export interface DeviceRepair {
@@ -222,6 +234,71 @@ export interface RepairDetails {
   acceptedAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
+  customerDescription: string | null;
+  device: {
+    id: string;
+    name: string;
+    manufacturer: string | null;
+    model: string | null;
+    serialNo: string | null;
+    inventoryNo: string | null;
+    department: DepartmentOption | null;
+    hospital: { id: string; name: string };
+  };
+  statusHistory: Array<{
+    id: string;
+    statusCode: string;
+    label: string;
+    changedAt: string;
+  }>;
+  documents: [];
+}
+
+export type InspectionDue = 'overdue' | 'next30days' | 'future' | 'all';
+
+export interface InspectionListItem extends DeviceInspection {
+  isTerminal: boolean;
+  updatedAt: string;
+  device: {
+    id: string;
+    name: string;
+    serialNo: string | null;
+    inventoryNo: string | null;
+  };
+  department: DepartmentOption | null;
+}
+
+export interface InspectionsResponse {
+  items: InspectionListItem[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+export interface InspectionsParams {
+  page: number;
+  pageSize: number;
+  search?: string;
+  departmentId?: string;
+  status?: string;
+  result?: string;
+  due?: InspectionDue;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface InspectionDetails {
+  id: string;
+  businessNumber: string;
+  customerStatusCode: string;
+  customerLabel: string;
+  result: string | null;
+  isTerminal: boolean;
+  plannedAt: string | null;
+  performedAt: string | null;
+  dueAt: string | null;
+  completedAt: string | null;
+  isOverdue: boolean;
   customerDescription: string | null;
   device: {
     id: string;
@@ -516,6 +593,18 @@ export function getRepairs(params: RepairsParams): Promise<RepairsResponse> {
 
 export function getRepair(id: string): Promise<RepairDetails> {
   return apiRequest(`/repairs/${encodeURIComponent(id)}`);
+}
+
+export function getInspections(params: InspectionsParams): Promise<InspectionsResponse> {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  return apiRequest(`/inspections?${query.toString()}`);
+}
+
+export function getInspection(id: string): Promise<InspectionDetails> {
+  return apiRequest(`/inspections/${encodeURIComponent(id)}`);
 }
 
 export function getDepartments(): Promise<{ items: DepartmentOption[] }> {

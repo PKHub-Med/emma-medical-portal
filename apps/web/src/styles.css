@@ -1518,6 +1518,9 @@ h1 {
 .repair-status-info { color: #165b8b; background: #e7f2fa; }
 .repair-status-warning { color: #805500; background: #fff0c7; }
 .repair-status-success { color: #17643d; background: #e5f6ec; }
+.repair-status-neutral { color: #4d5e6b; background: #edf0f2; }
+.repair-status-danger { color: #9c2020; background: #fde8e8; }
+.inspection-badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .repair-detail-grid { display: grid; gap: 16px; }
 .status-timeline { display: flex; flex-direction: column; gap: 18px; margin: 0; padding-left: 22px; }
 .status-timeline li { padding-left: 8px; }

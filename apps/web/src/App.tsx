@@ -16,6 +16,8 @@ import { DevicesPage } from './pages/DevicesPage';
 import { DeviceDetailsPage } from './pages/DeviceDetailsPage';
 import { RepairsPage } from './pages/RepairsPage';
 import { RepairDetailsPage } from './pages/RepairDetailsPage';
+import { InspectionsPage } from './pages/InspectionsPage';
+import { InspectionDetailsPage } from './pages/InspectionDetailsPage';
 import { useCurrentUser } from './query';
 
 export function defaultPathFor(user: CurrentUser): string {
@@ -150,13 +152,9 @@ export function App() {
             <Route path="repairs/:id" element={<RepairDetailsPage />} />
             <Route
               path="inspections"
-              element={
-                <PlaceholderPage
-                  title="Przeglądy"
-                  description="Przeglądy — moduł zostanie wdrożony w następnym etapie"
-                />
-              }
+              element={<InspectionsPage />}
             />
+            <Route path="inspections/:id" element={<InspectionDetailsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
         </Route>

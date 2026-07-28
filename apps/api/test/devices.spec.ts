@@ -136,6 +136,45 @@ describe('Portal devices', () => {
     }));
   });
 
+  it('returns related inspections with backend-calculated overdue state', async () => {
+    findFirst.mockResolvedValue({
+      id: deviceId,
+      name: 'Respirator',
+      manufacturer: null,
+      model: null,
+      serialNo: 'SN-001',
+      inventoryNo: null,
+      category: null,
+      active: true,
+      department: null,
+      qrEpc: null,
+      passportNo: null,
+      hospital: { id: hospitalId, name: 'Szpital Miejski' },
+      repairs: [],
+      inspections: [{
+        id: 'inspection-id',
+        businessNumber: 'P-2026-0081',
+        customerStatusCode: 'PLANNED',
+        customerLabel: 'Zaplanowany',
+        result: null,
+        isTerminal: false,
+        plannedAt: new Date('2026-07-01T08:00:00Z'),
+        performedAt: null,
+        dueAt: new Date('2020-01-01T08:00:00Z'),
+      }],
+    });
+    const result = await service.get('user-id', 'session-id', deviceId);
+    expect(result.inspections).toEqual([
+      expect.objectContaining({
+        businessNumber: 'P-2026-0081',
+        isOverdue: true,
+      }),
+    ]);
+    expect(findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      select: expect.objectContaining({ inspections: expect.any(Object) }),
+    }));
+  });
+
   it('returns only active departments of the active hospital', async () => {
     departmentFindMany.mockResolvedValue([]);
     const departments = new DepartmentsService(

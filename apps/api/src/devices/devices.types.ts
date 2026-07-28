@@ -39,6 +39,16 @@ export interface DeviceDetails extends DeviceListItem {
     reportedAt: Date | null;
     completedAt: Date | null;
   }>;
-  inspections: [];
+  inspections: Array<{
+    id: string;
+    businessNumber: string;
+    customerStatusCode: string;
+    customerLabel: string;
+    result: string | null;
+    plannedAt: Date | null;
+    performedAt: Date | null;
+    dueAt: Date | null;
+    isOverdue: boolean;
+  }>;
   documents: [];
 }

@@ -13,6 +13,11 @@ import type {
   DevicesPage,
   DevicesQuery,
 } from './devices.types';
+import { inspectionDayBoundaries } from '../inspections/inspection-dates';
+import {
+  compareInspections,
+  isInspectionOverdue,
+} from '../inspections/inspections.service';
 
 const deviceListSelect = {
   id: true,
@@ -124,6 +129,19 @@ export class DevicesService {
               { createdAt: 'desc' },
             ],
           },
+          inspections: {
+            select: {
+              id: true,
+              businessNumber: true,
+              customerStatusCode: true,
+              customerLabel: true,
+              result: true,
+              isTerminal: true,
+              plannedAt: true,
+              performedAt: true,
+              dueAt: true,
+            },
+          },
         },
       });
     } catch {
@@ -134,9 +152,20 @@ export class DevicesService {
     if (!device) {
       throw new NotFoundException('Nie znaleziono urządzenia.');
     }
+    const { startToday } = inspectionDayBoundaries();
+    const inspections = (device.inspections ?? [])
+      .map(({ isTerminal, ...inspection }) => ({
+        ...inspection,
+        isOverdue: isInspectionOverdue(
+          inspection.dueAt,
+          isTerminal,
+          startToday,
+        ),
+      }))
+      .sort(compareInspections);
     return {
       ...(device as Omit<DeviceDetails, 'inspections' | 'documents'>),
-      inspections: [],
+      inspections,
       documents: [],
     };
   }

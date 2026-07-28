@@ -18,6 +18,9 @@ import {
   getRepairs,
   getRepair,
   type RepairsParams,
+  getInspections,
+  getInspection,
+  type InspectionsParams,
 } from './api';
 
 export const currentUserQueryKey = ['current-user'] as const;
@@ -123,6 +126,31 @@ export function repairQueryOptions(activeHospitalId: string, id: string) {
   return queryOptions({
     queryKey: [...repairsQueryKey, activeHospitalId, 'details', id],
     queryFn: () => getRepair(id),
+    retry: (count, error) =>
+      error instanceof Error &&
+      'status' in error &&
+      Number((error as { status: number }).status) >= 500 &&
+      count < 2,
+  });
+}
+
+export const inspectionsQueryKey = ['inspections'] as const;
+
+export function inspectionsQueryOptions(
+  activeHospitalId: string,
+  params: InspectionsParams,
+) {
+  return queryOptions({
+    queryKey: [...inspectionsQueryKey, activeHospitalId, params],
+    queryFn: () => getInspections(params),
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+export function inspectionQueryOptions(activeHospitalId: string, id: string) {
+  return queryOptions({
+    queryKey: [...inspectionsQueryKey, activeHospitalId, 'details', id],
+    queryFn: () => getInspection(id),
     retry: (count, error) =>
       error instanceof Error &&
       'status' in error &&

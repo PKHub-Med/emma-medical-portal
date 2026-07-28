@@ -102,6 +102,7 @@ model Device {
   hospital          Hospital    @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
   department        Department? @relation(fields: [departmentId, hospitalId], references: [id, hospitalId], onDelete: Restrict)
   repairs           Repair[]
+  inspections       Inspection[]
 
   @@index([hospitalId], map: "devices_hospital_id_idx")
   @@index([hospitalId, departmentId], map: "devices_hospital_id_department_id_idx")
@@ -142,6 +143,41 @@ model Repair {
   @@index([reportedAt], map: "repairs_reported_at_idx")
   @@index([updatedAt], map: "repairs_updated_at_idx")
   @@map("repairs")
+}
+
+model Inspection {
+  id                  String    @id @default(uuid()) @db.Uuid
+  deviceId            String    @map("device_id") @db.Uuid
+  businessNumber      String    @unique @map("business_number") @db.VarChar(100)
+  customerStatusCode  String    @map("customer_status_code")
+  customerLabel       String    @map("customer_label")
+  result              String?
+  isTerminal          Boolean   @default(false) @map("is_terminal")
+  plannedAt           DateTime? @map("planned_at") @db.Timestamptz(3)
+  performedAt         DateTime? @map("performed_at") @db.Timestamptz(3)
+  dueAt               DateTime? @map("due_at") @db.Timestamptz(3)
+  completedAt         DateTime? @map("completed_at") @db.Timestamptz(3)
+  customerDescription String?   @map("customer_description")
+  sourceSystem        String?   @map("source_system")
+  sourceBaseId        String?   @map("source_base_id")
+  sourceTableName     String?   @map("source_table_name")
+  sourceRecordId      String?   @map("source_record_id")
+  sourceStatus        String?   @map("source_status")
+  sourceUpdatedAt     DateTime? @map("source_updated_at") @db.Timestamptz(3)
+  sourcePayloadHash   String?   @map("source_payload_hash")
+  sourceDeletedAt     DateTime? @map("source_deleted_at") @db.Timestamptz(3)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  device              Device    @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+
+  @@index([deviceId], map: "inspections_device_id_idx")
+  @@index([customerStatusCode], map: "inspections_customer_status_code_idx")
+  @@index([isTerminal], map: "inspections_is_terminal_idx")
+  @@index([plannedAt], map: "inspections_planned_at_idx")
+  @@index([dueAt], map: "inspections_due_at_idx")
+  @@index([completedAt], map: "inspections_completed_at_idx")
+  @@index([updatedAt], map: "inspections_updated_at_idx")
+  @@map("inspections")
 }
 
 model StatusHistory {

@@ -9,6 +9,7 @@ import { PortalHospitalsModule } from './portal-hospitals/portal-hospitals.modul
 import { AuditModule } from './audit/audit.module';
 import { DevicesModule } from './devices/devices.module';
 import { RepairsModule } from './repairs/repairs.module';
+import { InspectionsModule } from './inspections/inspections.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { RepairsModule } from './repairs/repairs.module';
     PortalHospitalsModule,
     DevicesModule,
     RepairsModule,
+    InspectionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
