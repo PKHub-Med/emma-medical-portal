@@ -21,6 +21,7 @@ import {
   getInspections,
   getInspection,
   type InspectionsParams,
+  getDashboardSummary,
 } from './api';
 
 export const currentUserQueryKey = ['current-user'] as const;
@@ -49,6 +50,16 @@ export function portalHospitalsQueryOptions() {
 }
 
 export const hospitalScopedQueryKey = ['hospital-scope'] as const;
+
+export const dashboardQueryKey = ['dashboard-summary'] as const;
+
+export function dashboardQueryOptions(activeHospitalId: string) {
+  return queryOptions({
+    queryKey: [...dashboardQueryKey, activeHospitalId],
+    queryFn: getDashboardSummary,
+    retry: false,
+  });
+}
 
 export const adminHospitalsQueryKey = ['admin-hospitals'] as const;
 

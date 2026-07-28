@@ -10,6 +10,7 @@ import { AuditModule } from './audit/audit.module';
 import { DevicesModule } from './devices/devices.module';
 import { RepairsModule } from './repairs/repairs.module';
 import { InspectionsModule } from './inspections/inspections.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { InspectionsModule } from './inspections/inspections.module';
     DevicesModule,
     RepairsModule,
     InspectionsModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

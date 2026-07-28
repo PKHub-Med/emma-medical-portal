@@ -17,6 +17,19 @@ export function inspectionDayBoundaries(
   };
 }
 
+export function calendarDaysBetween(
+  from: Date,
+  to: Date,
+  timeZone = APP_TIMEZONE,
+) {
+  assertTimeZone(timeZone);
+  const fromLocal = localParts(from, timeZone);
+  const toLocal = localParts(to, timeZone);
+  const fromDay = Date.UTC(fromLocal.year, fromLocal.month - 1, fromLocal.day);
+  const toDay = Date.UTC(toLocal.year, toLocal.month - 1, toLocal.day);
+  return Math.round((toDay - fromDay) / 86_400_000);
+}
+
 export function portalDateBoundary(
   value: string | undefined,
   field: string,

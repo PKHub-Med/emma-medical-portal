@@ -336,6 +336,35 @@ export interface DevicesParams {
   active?: boolean;
 }
 
+export interface DashboardStatusChange {
+  id: string;
+  entityType: 'REPAIR' | 'INSPECTION';
+  entityId: string;
+  businessNumber: string;
+  deviceName: string;
+  statusCode: string;
+  label: string;
+  changedAt: string;
+}
+
+export interface DashboardUpcomingInspection {
+  id: string;
+  businessNumber: string;
+  deviceName: string;
+  departmentName: string | null;
+  dueAt: string;
+  daysUntilDue: number;
+}
+
+export interface DashboardSummary {
+  openRepairs: number;
+  overdueInspections: number;
+  inspectionsNext30Days: number;
+  devices: number;
+  recentStatusChanges: DashboardStatusChange[];
+  upcomingInspections: DashboardUpcomingInspection[];
+}
+
 const apiUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 async function apiRequest<T>(
@@ -609,4 +638,8 @@ export function getInspection(id: string): Promise<InspectionDetails> {
 
 export function getDepartments(): Promise<{ items: DepartmentOption[] }> {
   return apiRequest('/departments');
+}
+
+export function getDashboardSummary(): Promise<DashboardSummary> {
+  return apiRequest('/dashboard/summary');
 }
