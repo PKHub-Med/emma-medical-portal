@@ -64,6 +64,8 @@ model Hospital {
   activeSessions UserSession[] @relation("ActiveHospitalSessions")
   auditEvents    AuditEvent[]
   devices        Device[]
+  contacts       Contact[]
+  communicationSettings CommunicationSettings?
 
   @@map("hospitals")
 }
@@ -241,10 +243,70 @@ model User {
   deletedBy       User?         @relation("UserSoftDeletes", fields: [deletedByUserId], references: [id], onDelete: SetNull)
   deletedUsers    User[]        @relation("UserSoftDeletes")
   auditEvents     AuditEvent[]   @relation("AuditEventActor")
+  linkedContacts  Contact[]      @relation("ContactLinkedUser")
 
   @@index([deletedAt], map: "users_deleted_at_idx")
   @@index([deletedByUserId], map: "users_deleted_by_user_id_idx")
   @@map("users")
+}
+
+model Contact {
+  id                String    @id @default(uuid()) @db.Uuid
+  hospitalId        String    @map("hospital_id") @db.Uuid
+  name              String
+  email             String    @db.VarChar(320)
+  phone             String?
+  jobTitle          String?   @map("job_title")
+  active            Boolean   @default(true)
+  linkedUserId      String?   @map("linked_user_id") @db.Uuid
+  sourceSystem      String?   @map("source_system")
+  sourceBaseId      String?   @map("source_base_id")
+  sourceTableName   String?   @map("source_table_name")
+  sourceRecordId    String?   @map("source_record_id")
+  sourceUpdatedAt   DateTime? @map("source_updated_at") @db.Timestamptz(3)
+  sourcePayloadHash String?   @map("source_payload_hash")
+  sourceDeletedAt   DateTime? @map("source_deleted_at") @db.Timestamptz(3)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  hospital          Hospital  @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  linkedUser        User?     @relation("ContactLinkedUser", fields: [linkedUserId], references: [id], onDelete: SetNull)
+  primaryFor        CommunicationSettings[] @relation("PrimaryContact")
+  communicationRecipients CommunicationRecipient[]
+
+  @@unique([hospitalId, email], map: "contacts_hospital_id_email_key")
+  @@index([hospitalId], map: "contacts_hospital_id_idx")
+  @@index([hospitalId, active], map: "contacts_hospital_id_active_idx")
+  @@index([linkedUserId], map: "contacts_linked_user_id_idx")
+  @@index([email], map: "contacts_email_idx")
+  @@map("contacts")
+}
+
+model CommunicationSettings {
+  id               String   @id @default(uuid()) @db.Uuid
+  hospitalId       String   @unique @map("hospital_id") @db.Uuid
+  enabled          Boolean  @default(false)
+  primaryContactId String?  @map("primary_contact_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  hospital         Hospital @relation(fields: [hospitalId], references: [id], onDelete: Restrict)
+  primaryContact   Contact? @relation("PrimaryContact", fields: [primaryContactId], references: [id], onDelete: SetNull)
+  recipients       CommunicationRecipient[]
+
+  @@index([primaryContactId], map: "communication_settings_primary_contact_id_idx")
+  @@map("communication_settings")
+}
+
+model CommunicationRecipient {
+  id                      String   @id @default(uuid()) @db.Uuid
+  communicationSettingsId String   @map("communication_settings_id") @db.Uuid
+  contactId               String   @map("contact_id") @db.Uuid
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  communicationSettings   CommunicationSettings @relation(fields: [communicationSettingsId], references: [id], onDelete: Cascade)
+  contact                 Contact @relation(fields: [contactId], references: [id], onDelete: Restrict)
+
+  @@unique([communicationSettingsId, contactId], map: "communication_recipients_settings_contact_key")
+  @@index([contactId], map: "communication_recipients_contact_id_idx")
+  @@map("communication_recipients")
 }
 
 model AuditEvent {

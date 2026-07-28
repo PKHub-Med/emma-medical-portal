@@ -62,6 +62,47 @@ export interface UpdateHospitalInput {
   portalEnabled?: boolean;
 }
 
+export interface HospitalContact {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  jobTitle: string | null;
+  active: boolean;
+  linkedUser: { id: string; email: string } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface HospitalContactsResponse {
+  items: HospitalContact[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+}
+
+export interface ContactInput {
+  name: string;
+  email: string;
+  phone: string | null;
+  jobTitle: string | null;
+}
+
+export interface CommunicationConfiguration {
+  hospital: { id: string; name: string };
+  enabled: boolean;
+  primaryContact: HospitalContact | null;
+  recipients: HospitalContact[];
+  configurationComplete: boolean;
+  configurationWarnings: string[];
+}
+
+export interface CommunicationInput {
+  enabled: boolean;
+  primaryContactId: string | null;
+  recipientContactIds: string[];
+}
+
 export type StatusMappingEntityType = 'REPAIR' | 'INSPECTION';
 
 export interface StatusMapping {
@@ -506,6 +547,10 @@ export function getAdminHospitals(
   return apiRequest(`/admin/hospitals?${query.toString()}`);
 }
 
+export function getAdminHospital(id: string): Promise<AdminHospital> {
+  return apiRequest(`/admin/hospitals/${id}`);
+}
+
 export function createAdminHospital(input: {
   name: string;
 }): Promise<AdminHospital> {
@@ -530,6 +575,81 @@ export function updateAdminHospital({
     headers: {
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify(data),
+  });
+}
+
+export function getHospitalContacts(
+  hospitalId: string,
+  params: {
+    page: number;
+    pageSize: number;
+    search?: string;
+    active?: boolean;
+    linked?: boolean;
+  },
+): Promise<HospitalContactsResponse> {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  });
+  return apiRequest(
+    `/admin/hospitals/${hospitalId}/contacts?${query.toString()}`,
+  );
+}
+
+export function createHospitalContact({
+  hospitalId,
+  data,
+}: {
+  hospitalId: string;
+  data: ContactInput;
+}): Promise<HospitalContact> {
+  return apiRequest(`/admin/hospitals/${hospitalId}/contacts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateHospitalContact({
+  hospitalId,
+  contactId,
+  data,
+}: {
+  hospitalId: string;
+  contactId: string;
+  data: Partial<ContactInput> & {
+    active?: boolean;
+    linkedUserId?: string | null;
+  };
+}): Promise<HospitalContact> {
+  return apiRequest(
+    `/admin/hospitals/${hospitalId}/contacts/${contactId}`,
+    {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    },
+  );
+}
+
+export function getHospitalCommunication(
+  hospitalId: string,
+): Promise<CommunicationConfiguration> {
+  return apiRequest(`/admin/hospitals/${hospitalId}/communication`);
+}
+
+export function updateHospitalCommunication({
+  hospitalId,
+  data,
+}: {
+  hospitalId: string;
+  data: CommunicationInput;
+}): Promise<CommunicationConfiguration> {
+  return apiRequest(`/admin/hospitals/${hospitalId}/communication`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
 }

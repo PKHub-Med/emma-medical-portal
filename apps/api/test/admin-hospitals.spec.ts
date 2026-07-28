@@ -130,6 +130,9 @@ describe('Admin hospitals', () => {
           name: 'Szpital Miejski',
           active: true,
           portalEnabled: false,
+          communicationSettings: {
+            create: { enabled: false },
+          },
         },
       }),
     );

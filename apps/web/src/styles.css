@@ -878,6 +878,196 @@ h1 {
   font-weight: 700;
 }
 
+.row-actions a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 7px;
+  color: #164f7f;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.row-actions a:hover {
+  background: #eaf3f9;
+  text-decoration: underline;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 18px;
+  color: #164f7f;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.details-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid #ccd9e3;
+}
+
+.details-tabs button {
+  padding: 13px 18px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  color: #526b7e;
+  background: transparent;
+  font: inherit;
+  font-weight: 750;
+}
+
+.details-tabs button[aria-selected="true"] {
+  border-bottom-color: #176292;
+  color: #0d466f;
+}
+
+.details-card {
+  padding: 26px;
+  border: 1px solid #d8e1e8;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.details-card h2,
+.compact-title h2 {
+  margin-top: 0;
+  color: #173b5c;
+}
+
+.hospital-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.hospital-summary div {
+  padding: 17px;
+  border: 1px solid #dbe4eb;
+  border-radius: 9px;
+  background: #f8fafb;
+}
+
+.hospital-summary dt {
+  color: #607487;
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+.hospital-summary dd {
+  margin: 7px 0 0;
+  color: #183e5c;
+  font-weight: 750;
+}
+
+.details-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.compact-title {
+  margin-bottom: 14px;
+}
+
+.contacts-table {
+  min-width: 1250px;
+}
+
+.contacts-table .row-actions {
+  min-width: 250px;
+}
+
+.contact-dialog {
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.contact-dialog .field,
+.communication-card .field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 15px;
+  color: #294a66;
+  font-weight: 700;
+}
+
+.contact-dialog input,
+.contact-dialog select,
+.communication-card select {
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid #9fb0bf;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+
+.toggle-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  color: #173b5c;
+  font-weight: 750;
+}
+
+.toggle-field input,
+.recipient-selector input {
+  width: 18px;
+  height: 18px;
+}
+
+.configuration-note,
+.configuration-warning,
+.configuration-summary {
+  margin: 14px 0;
+  padding: 13px 15px;
+  border: 1px solid #e5c56e;
+  border-radius: 8px;
+  color: #6f4c00;
+  background: #fff8df;
+}
+
+.recipient-selector {
+  display: grid;
+  gap: 10px;
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid #d7e1e8;
+  border-radius: 9px;
+}
+
+.recipient-selector legend {
+  padding: 0 6px;
+  color: #294a66;
+  font-weight: 750;
+}
+
+.recipient-selector label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.recipient-selector span {
+  color: #647789;
+}
+
+.configuration-summary.complete {
+  border-color: #9ed1b7;
+  color: #17663d;
+  background: #effaf4;
+}
+
+.configuration-summary p {
+  margin: 7px 0 0;
+}
+
 .row-actions button:hover:not(:disabled) {
   background: #eaf3f9;
   text-decoration: underline;

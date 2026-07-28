@@ -6,6 +6,7 @@ import { PortalLayout } from './layouts/PortalLayout';
 import { AccessDeniedPage } from './pages/AccessDeniedPage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminHospitalsPage } from './pages/AdminHospitalsPage';
+import { AdminHospitalDetailsPage } from './pages/AdminHospitalDetailsPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminAuditPage } from './pages/AdminAuditPage';
 import { AdminStatusesPage } from './pages/AdminStatusesPage';
@@ -166,6 +167,10 @@ export function App() {
             <Route
               path="hospitals"
               element={<AdminHospitalsPage />}
+            />
+            <Route
+              path="hospitals/:id"
+              element={<AdminHospitalDetailsPage />}
             />
             <Route
               path="users"

@@ -52,6 +52,20 @@ export class AdminHospitalsService {
     @Optional() private readonly auditService?: AuditService,
   ) {}
 
+  async get(id: string): Promise<HospitalItem> {
+    if (!isUuid(id)) {
+      throw new BadRequestException(
+        'Identyfikator szpitala jest nieprawidłowy.',
+      );
+    }
+    const hospital = await this.prisma.hospital.findUnique({
+      where: { id },
+      select: hospitalSelection,
+    });
+    if (!hospital) throw new NotFoundException('Nie znaleziono szpitala.');
+    return toHospitalItem(hospital as SelectedHospital);
+  }
+
   async list(query: HospitalsQuery): Promise<HospitalsPage> {
     const page = parsePositiveInteger(query.page, 'page', 1);
     const pageSize = parsePositiveInteger(
@@ -120,6 +134,9 @@ export class AdminHospitalsService {
             name: data.name,
             active: true,
             portalEnabled: false,
+            communicationSettings: {
+              create: { enabled: false },
+            },
           },
           select: hospitalSelection,
         });

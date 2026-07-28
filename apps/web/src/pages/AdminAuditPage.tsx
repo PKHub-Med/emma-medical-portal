@@ -23,6 +23,11 @@ export const auditActionLabels: Record<string, string> = {
   ACTIVE_HOSPITAL_CHANGED: 'Zmieniono aktywny szpital',
   STATUS_MAPPING_CREATED: 'Utworzono mapowanie statusu',
   STATUS_MAPPING_UPDATED: 'Zmieniono mapowanie statusu',
+  CONTACT_CREATED: 'Utworzono kontakt',
+  CONTACT_UPDATED: 'Zmieniono kontakt',
+  CONTACT_DEACTIVATED: 'Dezaktywowano kontakt',
+  CONTACT_LINKED_TO_USER: 'Powiązano kontakt z użytkownikiem',
+  COMMUNICATION_SETTINGS_UPDATED: 'Zmieniono ustawienia komunikacji',
 };
 
 export function AdminAuditPage() {

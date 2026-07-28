@@ -44,6 +44,11 @@ export class AdminHospitalsController {
     );
   }
 
+  @Get(':id')
+  get(@Param('id') id: string): Promise<HospitalItem> {
+    return this.hospitalsService.get(id);
+  }
+
   @Patch(':id')
   update(
     @Param('id') id: string,

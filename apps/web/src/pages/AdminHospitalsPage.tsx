@@ -4,6 +4,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import {
@@ -198,6 +199,9 @@ export function AdminHospitalsPage() {
                         <td>{hospital.membershipsCount}</td>
                         <td>
                           <div className="row-actions">
+                            <Link to={`/admin/hospitals/${hospital.id}`}>
+                              Konfiguruj
+                            </Link>
                             <button
                               type="button"
                               onClick={() =>
